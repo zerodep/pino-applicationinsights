@@ -1,0 +1,9 @@
+{
+  "root": true,
+  "extends": [ "@bonniernews" ],
+  "rules": {
+    "new-cap": 0,
+    "prefer-arrow-callback": "off",
+    "quotes": [ "error", "single", { "avoidEscape": true } ]
+  }
+}

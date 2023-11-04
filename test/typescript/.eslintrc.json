@@ -1,0 +1,3 @@
+{
+  "extends": ["@bonniernews/eslint-config/typescript", "../.eslintrc.json"]
+}

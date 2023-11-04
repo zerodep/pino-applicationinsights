@@ -1,0 +1,5 @@
+{
+  "recursive": true,
+  "exit": true,
+  "require": ["./test/helpers/setup.js"]
+}
