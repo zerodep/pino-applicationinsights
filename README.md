@@ -1,5 +1,7 @@
 # pino applicationinsights transport
 
+[![Build](https://github.com/zerodep/pino-applicationinsights/actions/workflows/build.yaml/badge.svg)](https://github.com/zerodep/pino-applicationinsights/actions/workflows/build.yaml)[![Coverage Status](https://coveralls.io/repos/github/zerodep/pino-applicationinsights/badge.svg?branch=default)](https://coveralls.io/github/zerodep/pino-applicationinsights?branch=default)
+
 Forward pino logger to Application Insights.
 
 ## Usage
