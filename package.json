@@ -1,5 +1,5 @@
 {
-  "name": "@zerodep/pino-applicationinsights",
+  "name": "@0dep/pino-applicationinsights",
   "version": "0.0.1",
   "description": "Pino applicationinsights transport",
   "type": "module",
