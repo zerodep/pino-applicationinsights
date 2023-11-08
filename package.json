@@ -1,6 +1,6 @@
 {
   "name": "@0dep/pino-applicationinsights",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Pino applicationinsights transport",
   "type": "module",
   "module": "./src/log-transport.js",
@@ -55,8 +55,8 @@
     "ts-node": "^10.9.1"
   },
   "peerDependencies": {
-    "applicationinsights": ">=2.9",
-    "pino-abstract-transport": "=>1.1"
+    "applicationinsights": "2.x",
+    "pino-abstract-transport": "1.x"
   },
   "optionalDependencies": {
     "nock": "*"
