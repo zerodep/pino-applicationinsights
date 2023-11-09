@@ -1,6 +1,6 @@
 {
   "name": "@0dep/pino-applicationinsights",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Pino applicationinsights transport",
   "type": "module",
   "module": "./src/index.js",
@@ -8,14 +8,12 @@
   "types": "./types/index.d.ts",
   "exports": {
     ".": {
-      "types": "./types/index.d.ts",
       "require": "./lib/index.cjs",
-      "default": "./src/index.js"
+      "import": "./src/index.js"
     },
     "./fake-applicationinsights": {
-      "types": "./types/index.d.ts",
       "require": "./lib/fake-applicationinsights.cjs",
-      "default": "./src/fake-applicationinsights.js"
+      "import": "./src/fake-applicationinsights.js"
     }
   },
   "engines": {
