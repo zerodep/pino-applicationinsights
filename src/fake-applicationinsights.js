@@ -38,21 +38,21 @@ export class FakeApplicationInsights {
   }
   /**
    * Expect tracked message
-   * @returns {Promise<import('./types/interfaces.js').FakeCollectData>}
+   * @returns {Promise<import('../types/interfaces.js').FakeCollectData>}
    */
   expectMessageData() {
     return this.expectEventType('MessageData');
   }
   /**
    * Expect tracked event
-   * @returns {Promise<import('./types/interfaces.js').FakeCollectData>}
+   * @returns {Promise<import('../types/interfaces.js').FakeCollectData>}
    */
   expectEventData() {
     return this.expectEventType('EventData');
   }
   /**
    * Expect tracked exception
-   * @returns {Promise<import('./types/interfaces.js').FakeCollectData>}
+   * @returns {Promise<import('../types/interfaces.js').FakeCollectData>}
    */
   expectExceptionData() {
     return this.expectEventType('ExceptionData');
@@ -60,7 +60,7 @@ export class FakeApplicationInsights {
   /**
    * Expect tracked telemetry type
    * @param {string} telemetryType Telemetry type
-   * @returns {Promise<import('./types/interfaces.js').FakeCollectData>}
+   * @returns {Promise<import('../types/interfaces.js').FakeCollectData>}
    */
   expectEventType(telemetryType) {
     return new Promise((resolve) => {
@@ -81,7 +81,7 @@ export class FakeApplicationInsights {
   /**
    * Expect tracked telemetrys
    * @param {number} [count] wait for at least tracked telemetrys before returning, default is 1
-   * @returns {Promise<import('./types/interfaces.js').FakeCollectData[]>}
+   * @returns {Promise<import('../types/interfaces.js').FakeCollectData[]>}
    */
   expect(count = 1) {
     return new Promise((resolve) => {

@@ -1,10 +1,8 @@
 /// <reference types="node" />
 
-import { Writable, Transform } from 'stream'
+import { Writable } from 'stream'
 import { TelemetryClient, Contracts } from 'applicationinsights'
-import build from 'pino-abstract-transport'
 
-export type buildReturn = build.OnUnknown & Transform;
 export type trackFunction = (this: TelemetryClient, chunk: LogTelemetry) => void;
 
 export interface TelemetryTransformationConfig {

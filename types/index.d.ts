@@ -1,15 +1,14 @@
 declare module '@0dep/pino-applicationinsights' {
 	import type { Transform } from 'node:stream';
-	import type { Writable, Transform as Transform_1 } from 'stream';
+	import type { Writable } from 'stream';
 	import type { TelemetryClient, Contracts } from 'applicationinsights';
-	import type { default as build } from 'pino-abstract-transport';
 	/// <reference types="node" />
 	/**
-	 * Application Insights pino transport
+	 * Compose Application Insights pino transport
 	 * @param opts - transport options
 	 * @param Transformation - optional Telemetry transformation stream
 	 * */
-	export default function compose(opts: ConnectionStringBuildConfig | DestinationBuildConfig, Transformation?: typeof TelemetryTransformation | undefined): buildReturn;
+	export default function compose(opts: ConnectionStringBuildConfig | DestinationBuildConfig, Transformation?: typeof TelemetryTransformation | undefined): ReturnType<typeof import('pino-abstract-transport')>;
 	/**
 	 * Telemetry exception
 	 * 
@@ -52,7 +51,6 @@ declare module '@0dep/pino-applicationinsights' {
 		 * */
 		extractProperties(line: any, ignoreKeys?: string[] | undefined): any;
 	}
-  type buildReturn = build.OnUnknown & Transform_1;
   type trackFunction = (this: TelemetryClient, chunk: LogTelemetry) => void;
 
   interface TelemetryTransformationConfig {

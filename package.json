@@ -1,6 +1,6 @@
 {
   "name": "@0dep/pino-applicationinsights",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Pino applicationinsights transport",
   "type": "module",
   "module": "./src/index.js",
@@ -76,6 +76,8 @@
   "files": [
     "lib/*.cjs",
     "src/*.js",
-    "types/index.d.ts"
+    "types",
+    "index.d.ts",
+    "fake-applicationinsights.d.ts"
   ]
 }

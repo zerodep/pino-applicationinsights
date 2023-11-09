@@ -36,7 +36,7 @@ export class TelemetryTransformation extends Transform {
   /**
    * @constructor
    * @param {import('stream').TransformOptions} [options] - optional stream options
-   * @param {import('./types/interfaces.js').TelemetryTransformationConfig} [config] - optional transform options
+   * @param {import('../types/interfaces.js').TelemetryTransformationConfig} [config] - optional transform options
    */
   constructor(options, config) {
     super({ ...options, objectMode: true });
@@ -55,7 +55,7 @@ export class TelemetryTransformation extends Transform {
   /**
    * Convert to telemetryish object
    * @param {string | object} chunk
-   * @returns {import('./types/interfaces.js').LogTelemetry}
+   * @returns {import('../types/interfaces.js').LogTelemetry}
    */
   convertToTelemetry(chunk) {
     const line = typeof chunk === 'string' ? JSON.parse(chunk) : chunk;
@@ -106,10 +106,10 @@ export class TelemetryTransformation extends Transform {
 }
 
 /**
- * Application Insights pino transport
- * @param {import('./types/interfaces.js').ConnectionStringBuildConfig | import('./types/interfaces.js').DestinationBuildConfig} opts - transport options
+ * Compose Application Insights pino transport
+ * @param {import('../types/interfaces.js').ConnectionStringBuildConfig | import('../types/interfaces.js').DestinationBuildConfig} opts - transport options
  * @param {typeof TelemetryTransformation} [Transformation] - optional Telemetry transformation stream
- * @returns {import('./types/interfaces.js').buildReturn}
+ * @returns {ReturnType<typeof import('pino-abstract-transport')>}
  */
 export default function compose(opts, Transformation = TelemetryTransformation) {
   if (!opts.destination && (!opts.track || !opts.connectionString)) {

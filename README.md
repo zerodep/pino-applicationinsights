@@ -8,9 +8,9 @@ Forward pino logger to Application Insights.
 
 ```js
 import { pino } from 'pino';
-import build from '@zerodep/pino-applicationinsights';
+import compose from '@zerodep/pino-applicationinsights';
 
-const transport = build({
+const transport = compose({
   track(chunk) {
     const { time, severity, msg: message, properties, exception } = chunk;
     this.trackTrace({ time, severity, message, properties });
@@ -25,7 +25,7 @@ const logger = pino({ level: 'trace' }, transport);
 
 ## API
 
-### `build(opts[, TelemetryTransformation]) => Stream`
+### `compose(opts[, TelemetryTransformation]) => Stream`
 
 Build transport stream function.
 
@@ -40,3 +40,5 @@ Build transport stream function.
 ### `class TelemetryTransformation(options[, config])`
 
 Telemetry transformation stream. Transforms pino log record to Telemetry:ish object.
+
+### `class FakeApplicationInsigths()`
