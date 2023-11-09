@@ -36,7 +36,7 @@ export class TelemetryTransformation extends Transform {
   /**
    * @constructor
    * @param {import('stream').TransformOptions} [options] - optional stream options
-   * @param {import('../types/index.js').TelemetryTransformationConfig} [config] - optional transform options
+   * @param {import('./types/interfaces.js').TelemetryTransformationConfig} [config] - optional transform options
    */
   constructor(options, config) {
     super({ ...options, objectMode: true });
@@ -55,7 +55,7 @@ export class TelemetryTransformation extends Transform {
   /**
    * Convert to telemetryish object
    * @param {string | object} chunk
-   * @returns {import('../types/index.js').LogTelemetry}
+   * @returns {import('./types/interfaces.js').LogTelemetry}
    */
   convertToTelemetry(chunk) {
     const line = typeof chunk === 'string' ? JSON.parse(chunk) : chunk;
@@ -107,11 +107,11 @@ export class TelemetryTransformation extends Transform {
 
 /**
  * Application Insights pino transport
- * @param {import('../types/index.js').ConnectionStringBuildConfig | import('../types/index.js').DestinationBuildConfig} opts - transport options
+ * @param {import('./types/interfaces.js').ConnectionStringBuildConfig | import('./types/interfaces.js').DestinationBuildConfig} opts - transport options
  * @param {typeof TelemetryTransformation} [Transformation] - optional Telemetry transformation stream
- * @returns {import('../types/index.js').buildReturn}
+ * @returns {import('./types/interfaces.js').buildReturn}
  */
-export default function build(opts, Transformation = TelemetryTransformation) {
+export default function compose(opts, Transformation = TelemetryTransformation) {
   if (!opts.destination && (!opts.track || !opts.connectionString)) {
     throw new TypeError('track function and connectionString are required');
   }
