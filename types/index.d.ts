@@ -8,7 +8,7 @@ declare module '@0dep/pino-applicationinsights' {
 	 * @param opts - transport options
 	 * @param Transformation - optional Telemetry transformation stream
 	 * */
-	export default function compose(opts: ConnectionStringBuildConfig | DestinationBuildConfig, Transformation?: typeof TelemetryTransformation | undefined): ReturnType<typeof import('pino-abstract-transport')>;
+	export default function compose(opts: ConnectionStringComposeConfig | DestinationComposeConfig, Transformation?: typeof TelemetryTransformation | undefined): ReturnType<typeof import('pino-abstract-transport')>;
 	/**
 	 * Telemetry exception
 	 * 
@@ -61,14 +61,14 @@ declare module '@0dep/pino-applicationinsights' {
 	ignoreKeys?: string[];
   }
 
-  interface BuildConfig extends TelemetryTransformationConfig {
+  interface ComposeConfig extends TelemetryTransformationConfig {
 	[k: string]: any,
   }
 
   /**
-   * Pino to application insigths transport build config with connection string
+   * Pino to application insights transport compose config with connection string
    */
-  interface ConnectionStringBuildConfig extends BuildConfig {
+  interface ConnectionStringComposeConfig extends ComposeConfig {
 	/** track function called with Telemetry client context */
 	track: trackFunction;
 	/** Application insights connection string */
@@ -80,16 +80,19 @@ declare module '@0dep/pino-applicationinsights' {
   }
 
   /**
-   * Pino to application insigths transport build config with destination stream
+   * Pino to application insights transport compose config with destination stream
    */
-  interface DestinationBuildConfig extends BuildConfig {
+  interface DestinationComposeConfig extends ComposeConfig {
 	/** Destination stream */
 	destination: Writable;
   }
 
   interface LogTelemetry extends Contracts.Telemetry {
 	severity: Contracts.SeverityLevel;
+	/** Pino log message */
 	msg: string;
+	/** Telemetry properties */
+	properties: Record<string, any>;
 	exception?: Error;
 	[k: string]: any;
   }

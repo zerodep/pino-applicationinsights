@@ -17,7 +17,7 @@
     }
   },
   "engines": {
-    "node": ">= 16"
+    "node": ">=16"
   },
   "scripts": {
     "test:ts": "mocha --config test/typescript/.mocharc.json",

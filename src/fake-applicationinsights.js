@@ -26,6 +26,8 @@ export class FakeApplicationInsights {
    */
   constructor(setupString) {
     const client = this.client = new TelemetryClient(setupString);
+    client.getStatsbeat().enable(false);
+
     const endpointURL = this._endpointURL = new URL(client.config.endpointUrl);
 
     this._endpointPathname = endpointURL.pathname;

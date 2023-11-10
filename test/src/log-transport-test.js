@@ -2,8 +2,9 @@ import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { pino } from 'pino';
 import { Contracts } from 'applicationinsights';
+import * as ck from 'chronokinesis';
 
-import build from '../../src/index.js';
+import compose from '../../src/index.js';
 import { FakeApplicationInsights } from '../../src/fake-applicationinsights.js';
 
 const filePath = fileURLToPath(import.meta.url);
@@ -15,14 +16,14 @@ describe('log transport', () => {
   before(() => {
     fakeAI = new FakeApplicationInsights(connectionString);
 
-    transport = build({
+    transport = compose({
       track(chunk) {
         const { time, severity, msg: message, properties, exception } = chunk;
         this.trackTrace({ time, severity, message, properties });
         if (exception) this.trackException({ time, exception, severity });
       },
       connectionString,
-      config: { maxBatchSize: 1 },
+      config: { maxBatchSize: 1, disableStatsbeat: true },
     });
 
     logger = pino({ level: 'trace' }, transport);
@@ -31,6 +32,7 @@ describe('log transport', () => {
     transport.destroy();
     fakeAI.reset();
   });
+  afterEach(ck.reset);
 
   it('logs debug', async () => {
     const expectMessage = fakeAI.expectMessageData();
@@ -136,5 +138,17 @@ describe('log transport', () => {
     expect(exception).to.have.property('parsedStack').with.property('length').that.is.above(0);
 
     expect(exception.parsedStack[0].fileName, 'stack file name').to.include(filePath);
+  });
+
+  it('logs time taken from log record', async () => {
+    ck.freeze();
+
+    const expectMessage = fakeAI.expectMessageData();
+
+    logger.info('foo');
+
+    const msg = await expectMessage;
+
+    expect(msg.body.time).to.equal(new Date().toISOString());
   });
 });

@@ -1,8 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { pino } from 'pino';
 import { expect } from 'chai';
+import { TelemetryClient } from 'applicationinsights';
 
-import build from '../../src/index.js';
+import compose from '../../src/index.js';
 import { FakeApplicationInsights } from '../../src/fake-applicationinsights.js';
 
 describe('log transport', () => {
@@ -16,13 +17,13 @@ describe('log transport', () => {
   });
 
   it('log with track trace write trace record', async () => {
-    const transport = build({
+    const transport = compose({
       track(chunk) {
         const { time, severity, msg: message, properties } = chunk;
         this.trackTrace({ time, severity, message, properties });
       },
       connectionString,
-      config: { maxBatchSize: 1 },
+      config: { maxBatchSize: 1, disableStatsbeat: true },
     });
     const logger = pino(transport);
 
@@ -39,13 +40,13 @@ describe('log transport', () => {
   });
 
   it('log with track event write event record', async () => {
-    const transport = build({
+    const transport = compose({
       track(chunk) {
         const { time, properties } = chunk;
         this.trackEvent({ name: 'my event', time, properties, measurements: { logins: 1 } });
       },
       connectionString,
-      config: { maxBatchSize: 1 },
+      config: { maxBatchSize: 1, disableStatsbeat: true },
     });
     const logger = pino(transport);
 
@@ -67,13 +68,13 @@ describe('log transport', () => {
   it('config maxBatchSize is passed to TelemetryClient', async () => {
     const expectThree = fakeAI.expect(3);
 
-    const transport = build({
+    const transport = compose({
       track(chunk) {
         const { time, severity, msg: message, properties } = chunk;
         this.trackTrace({ time, severity, message, properties });
       },
       connectionString,
-      config: { maxBatchSize: 3 },
+      config: { maxBatchSize: 3, disableStatsbeat: true },
     });
 
     const logger = pino({ level: 'trace' }, transport);
@@ -85,5 +86,28 @@ describe('log transport', () => {
     const msgs = await expectThree;
 
     expect(msgs[2].body.data.baseData.message).to.equal('foo 2');
+    expect(msgs[0].body.data.baseData.properties.userid).to.equal('bar');
+  });
+
+  it('config disableStatsbeat is passed to TelemetryClient', async () => {
+    const tracked = new Promise<TelemetryClient>((resolve) => {
+      const transport = compose({
+        track(chunk) {
+          resolve(this);
+          const { time, severity, msg: message, properties } = chunk;
+          this.trackTrace({ time, severity, message, properties });
+        },
+        connectionString,
+        config: { disableStatsbeat: true },
+      });
+
+      const logger = pino({ level: 'trace' }, transport);
+
+      logger.info({ userid: 'bar' }, 'foo 0');
+    });
+
+    const client = await tracked;
+
+    expect(client.getStatsbeat().isEnabled()).to.be.false;
   });
 });

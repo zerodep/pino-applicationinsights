@@ -3,7 +3,7 @@
 const { randomUUID } = require('node:crypto');
 const pino = require('pino');
 
-const build = require('../../lib/index.cjs');
+const compose = require('../../lib/index.cjs');
 const { FakeApplicationInsights } = require('../../lib/fake-applicationinsights.cjs');
 
 describe('log transport', () => {
@@ -18,13 +18,13 @@ describe('log transport', () => {
     });
 
     it('connection string', async () => {
-      const transport = build({
+      const transport = compose({
         track(chunk) {
           const { time, severity, msg: message, properties } = chunk;
           this.trackTrace({ time, severity, message, properties });
         },
         connectionString,
-        config: { maxBatchSize: 1 },
+        config: { maxBatchSize: 1, disableStatsBeat: true },
       });
       const logger = pino(transport);
 

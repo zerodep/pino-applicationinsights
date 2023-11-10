@@ -2,12 +2,12 @@ import { Writable } from 'node:stream';
 import { randomUUID } from 'node:crypto';
 import { pino } from 'pino';
 
-import build from '../../src/index.js';
+import compose from '../../src/index.js';
 import { FakeApplicationInsights } from '../../src/fake-applicationinsights.js';
 
-describe('build', () => {
+describe('compose', () => {
   describe('options', () => {
-    it('build with destination stream pipes to destination', () => {
+    it('compose with destination stream pipes to destination', () => {
       const msgs = [];
 
       const destination = new Writable({
@@ -19,7 +19,7 @@ describe('build', () => {
         },
       });
 
-      const transport = build({ destination });
+      const transport = compose({ destination });
 
       const logger = pino(transport);
 
@@ -30,10 +30,10 @@ describe('build', () => {
       transport.destroy();
     });
 
-    it('ignore keys filters log line properties', () => {
+    it('ignore keys filters telemetry properties', () => {
       const msgs = [];
 
-      const transport = build({
+      const transport = compose({
         ignoreKeys: [ 'pid', 'hostname', 'level', 'msg', 'bar', 'time' ],
         destination: new Writable({
           autoDestroy: true,
@@ -66,13 +66,13 @@ describe('build', () => {
       });
 
       it('logs message to target', async () => {
-        const transport = build({
+        const transport = compose({
           track(chunk) {
             const { time, severity, msg: message, properties } = chunk;
             this.trackTrace({ time, severity, message, properties });
           },
           connectionString,
-          config: { maxBatchSize: 1 },
+          config: { maxBatchSize: 1, disableStatsbeat: true },
         });
         const logger = pino(transport);
 
@@ -84,8 +84,70 @@ describe('build', () => {
 
         expect(msg.body.data.baseData).to.have.property('message', 'foo');
         expect(msg.body.data.baseData).to.have.property('properties').that.deep.equal({ bar: 'baz' });
+      });
 
-        transport.destroy();
+      it('no TelemetryClient config is ok', () => {
+        let client;
+        const transport = compose({
+          track(chunk) {
+            client = this;
+            const { time, severity, msg: message, properties } = chunk;
+            this.trackTrace({ time, severity, message, properties });
+          },
+          connectionString,
+        });
+        const logger = pino(transport);
+
+        logger.info({ bar: 'baz' }, 'foo');
+
+        expect(client.config).to.be.ok;
+        expect(client.config).to.have.property('maxBatchSize').to.be.above(1);
+        expect(client.getStatsbeat().isEnabled()).to.be.true;
+
+        client.getStatsbeat().enable(false);
+
+        expect(client.getStatsbeat().isEnabled()).to.be.false;
+      });
+
+      it('config.disableStatsBeat=true disables telemetry client stats beat', () => {
+        let client;
+        const transport = compose({
+          track(chunk) {
+            client = this;
+            const { time, severity, msg: message, properties } = chunk;
+            this.trackTrace({ time, severity, message, properties });
+          },
+          connectionString,
+          config: { disableStatsbeat: true },
+        });
+        const logger = pino(transport);
+
+        logger.info({ bar: 'baz' }, 'foo');
+
+        expect(client.getStatsbeat().isEnabled(), 'statsbeat enabled').to.be.false;
+      });
+
+      it('config.maxBatchSize is passed to telemetry client', async () => {
+        const expectThree = fakeAI.expect(3);
+
+        const transport = compose({
+          track(chunk) {
+            const { time, severity, msg: message, properties } = chunk;
+            this.trackTrace({ time, severity, message, properties });
+          },
+          connectionString,
+          config: { maxBatchSize: 3, disableStatsbeat: true },
+        });
+
+        const logger = pino({ level: 'trace' }, transport);
+
+        logger.info({ userid: 'bar' }, 'foo 0');
+        logger.info({ userid: 'bar' }, 'foo 1');
+        logger.info({ userid: 'bar' }, 'foo 2');
+
+        const msgs = await expectThree;
+
+        expect(msgs).to.have.length(3);
       });
     });
 
@@ -100,13 +162,13 @@ describe('build', () => {
       });
 
       it('logs message to target', async () => {
-        const transport = build({
+        const transport = compose({
           track(chunk) {
             const { time, severity, msg: message, properties } = chunk;
             this.trackTrace({ time, severity, message, properties });
           },
           connectionString: instrumentationKey,
-          config: { maxBatchSize: 1 },
+          config: { maxBatchSize: 1, disableStatsbeat: true },
         });
 
         const logger = pino(transport);
@@ -126,19 +188,19 @@ describe('build', () => {
 
     it('without connection string throws', () => {
       expect(() => {
-        build({ track() {} });
+        compose({ track() {} });
       }).to.throw(TypeError, /connectionString/);
     });
 
     it('with connection string but without track throws', () => {
       expect(() => {
-        build({ track() {} });
+        compose({ track() {} });
       }).to.throw(TypeError, /connectionString/);
     });
 
     it('with destination not a Writable stream throws', () => {
       expect(() => {
-        build({ destination: {} });
+        compose({ destination: {} });
       }).to.throw(TypeError, /writable/);
     });
   });
@@ -157,7 +219,7 @@ describe('build', () => {
     it('is bound to telemetry client, e.g. client.context.keys', async () => {
       const expectMessage = fakeAI.expectMessageData();
 
-      const transport = build({
+      const transport = compose({
         track(chunk) {
           const { time, severity, msg: message, properties } = chunk;
           this.trackTrace({
@@ -169,7 +231,7 @@ describe('build', () => {
           });
         },
         connectionString,
-        config: { maxBatchSize: 1 },
+        config: { maxBatchSize: 1, disableStatsbeat: true },
       });
 
       const logger = pino({ level: 'trace' }, transport);
@@ -179,41 +241,8 @@ describe('build', () => {
       const { body } = await expectMessage;
 
       expect(body.tags).to.have.property('ai.user.id', 'bar');
-    });
-  });
 
-  describe('config', () => {
-    const connectionString = `InstrumentationKey=${randomUUID()};IngestionEndpoint=https://ingestion.local;LiveEndpoint=https://livemonitor.local/`;
-
-    let fakeAI;
-    before(() => {
-      fakeAI = new FakeApplicationInsights(connectionString);
-    });
-    after(() => {
-      fakeAI.reset();
-    });
-
-    it('is passed to telemetry client, e.g. config.maxBatchSize = 3', async () => {
-      const expectThree = fakeAI.expect(3);
-
-      const transport = build({
-        track(chunk) {
-          const { time, severity, msg: message, properties } = chunk;
-          this.trackTrace({ time, severity, message, properties });
-        },
-        connectionString,
-        config: { maxBatchSize: 3 },
-      });
-
-      const logger = pino({ level: 'trace' }, transport);
-
-      logger.info({ userid: 'bar' }, 'foo 0');
-      logger.info({ userid: 'bar' }, 'foo 1');
-      logger.info({ userid: 'bar' }, 'foo 2');
-
-      const msgs = await expectThree;
-
-      expect(msgs).to.have.length(3);
+      transport.destroy();
     });
   });
 });

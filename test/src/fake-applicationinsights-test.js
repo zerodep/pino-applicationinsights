@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { pino } from 'pino';
 
-import build from '../../src/index.js';
+import compose from '../../src/index.js';
 import { FakeApplicationInsights } from '../../src/fake-applicationinsights.js';
 
 describe('fake applicationinsights', () => {
@@ -16,13 +16,13 @@ describe('fake applicationinsights', () => {
   });
 
   it('log with track event catches event record', async () => {
-    const transport = build({
+    const transport = compose({
       track(chunk) {
         const { time, properties } = chunk;
         this.trackEvent({ name: 'my event', time, properties, measurements: { logins: 1 } });
       },
       connectionString,
-      config: { maxBatchSize: 1 },
+      config: { maxBatchSize: 1, disableStatsbeat: true },
     });
     const logger = pino(transport);
 
@@ -42,13 +42,13 @@ describe('fake applicationinsights', () => {
   });
 
   it('log with track event catches first event record', async () => {
-    const transport = build({
+    const transport = compose({
       track(chunk) {
         const { time, properties } = chunk;
         this.trackEvent({ name: 'my event', time, properties, measurements: { logins: 1 } });
       },
       connectionString,
-      config: { maxBatchSize: 2 },
+      config: { maxBatchSize: 2, disableStatsbeat: true },
     });
     const logger = pino(transport);
 

@@ -13,14 +13,14 @@ export interface TelemetryTransformationConfig {
   ignoreKeys?: string[];
 }
 
-export interface BuildConfig extends TelemetryTransformationConfig {
+export interface ComposeConfig extends TelemetryTransformationConfig {
   [k: string]: any,
 }
 
 /**
- * Pino to application insigths transport build config with connection string
+ * Pino to application insights transport compose config with connection string
  */
-export interface ConnectionStringBuildConfig extends BuildConfig {
+export interface ConnectionStringComposeConfig extends ComposeConfig {
   /** track function called with Telemetry client context */
   track: trackFunction;
   /** Application insights connection string */
@@ -32,16 +32,19 @@ export interface ConnectionStringBuildConfig extends BuildConfig {
 }
 
 /**
- * Pino to application insigths transport build config with destination stream
+ * Pino to application insights transport compose config with destination stream
  */
-export interface DestinationBuildConfig extends BuildConfig {
+export interface DestinationComposeConfig extends ComposeConfig {
   /** Destination stream */
   destination: Writable;
 }
 
 export interface LogTelemetry extends Contracts.Telemetry {
   severity: Contracts.SeverityLevel;
+  /** Pino log message */
   msg: string;
+  /** Telemetry properties */
+  properties: Record<string, any>;
   exception?: Error;
   [k: string]: any;
 }

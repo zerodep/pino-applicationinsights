@@ -107,7 +107,7 @@ export class TelemetryTransformation extends Transform {
 
 /**
  * Compose Application Insights pino transport
- * @param {import('../types/interfaces.js').ConnectionStringBuildConfig | import('../types/interfaces.js').DestinationBuildConfig} opts - transport options
+ * @param {import('../types/interfaces.js').ConnectionStringComposeConfig | import('../types/interfaces.js').DestinationComposeConfig} opts - transport options
  * @param {typeof TelemetryTransformation} [Transformation] - optional Telemetry transformation stream
  * @returns {ReturnType<typeof import('pino-abstract-transport')>}
  */
@@ -118,14 +118,16 @@ export default function compose(opts, Transformation = TelemetryTransformation) 
 
   /** @type {Writable | Transform} */
   let destination;
-  let client;
   if (opts.destination) {
     if (typeof opts.destination.write !== 'function') throw new TypeError('destination must be a writable stream');
     destination = opts.destination;
   } else {
-    client = new TelemetryClient(opts.connectionString);
+    const client = new TelemetryClient(opts.connectionString);
 
     if (opts.config) {
+      if (opts.config.disableStatsbeat) {
+        client.getStatsbeat().enable(false);
+      }
       Object.assign(client.config, opts.config);
     }
 
