@@ -2,9 +2,11 @@ import { randomUUID } from 'node:crypto';
 import { pino } from 'pino';
 import { expect } from 'chai';
 import { TelemetryClient } from 'applicationinsights';
+import { MetricTelemetry } from 'applicationinsights/out/Declarations/Contracts/index.js';
 
 import compose from '../../src/index.js';
 import { FakeApplicationInsights } from '../../src/fake-applicationinsights.js';
+import { LogTelemetry } from '../../types/interfaces.js';
 
 describe('log transport', () => {
   const connectionString = `InstrumentationKey=${randomUUID()};IngestionEndpoint=https://ingestion.local;LiveEndpoint=https://livemonitor.local/`;
@@ -109,5 +111,26 @@ describe('log transport', () => {
     const client = await tracked;
 
     expect(client.getStatsbeat().isEnabled()).to.be.false;
+  });
+
+  it('fake application insights expect telemetry', async () => {
+    const expectTelemetry = fakeAI.expectTelemetryType('MetricData');
+
+    const transport = compose({
+      track(chunk: LogTelemetry & Partial<MetricTelemetry>) {
+        const { time, msg, value = 0, count } = chunk;
+        this.trackMetric({ time, name: msg, value, count });
+      },
+      connectionString,
+      config: { maxBatchSize: 1, disableStatsbeat: true },
+    });
+
+    const logger = pino({ level: 'trace' }, transport);
+
+    logger.info({ value: 1, count: 1 }, 'foo');
+
+    const telemetry = await expectTelemetry;
+
+    expect(telemetry.body.data.baseData.metrics[0]).to.have.property('name', 'foo');
   });
 });

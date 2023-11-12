@@ -129,7 +129,7 @@ declare module '@0dep/pino-applicationinsights/fake-applicationinsights' {
 		 * Expect tracked telemetry type
 		 * @param telemetryType Telemetry type
 		 * */
-		expectEventType(telemetryType: string): Promise<FakeCollectData>;
+		expectTelemetryType(telemetryType: import('applicationinsights').Contracts.TelemetryTypeValues): Promise<FakeCollectData>;
 		/**
 		 * Expect tracked telemetrys
 		 * @param count wait for at least tracked telemetrys before returning, default is 1

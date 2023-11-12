@@ -43,28 +43,28 @@ export class FakeApplicationInsights {
    * @returns {Promise<import('../types/interfaces.js').FakeCollectData>}
    */
   expectMessageData() {
-    return this.expectEventType('MessageData');
+    return this.expectTelemetryType('MessageData');
   }
   /**
    * Expect tracked event
    * @returns {Promise<import('../types/interfaces.js').FakeCollectData>}
    */
   expectEventData() {
-    return this.expectEventType('EventData');
+    return this.expectTelemetryType('EventData');
   }
   /**
    * Expect tracked exception
    * @returns {Promise<import('../types/interfaces.js').FakeCollectData>}
    */
   expectExceptionData() {
-    return this.expectEventType('ExceptionData');
+    return this.expectTelemetryType('ExceptionData');
   }
   /**
    * Expect tracked telemetry type
-   * @param {string} telemetryType Telemetry type
+   * @param {import('applicationinsights').Contracts.TelemetryTypeValues} telemetryType Telemetry type
    * @returns {Promise<import('../types/interfaces.js').FakeCollectData>}
    */
-  expectEventType(telemetryType) {
+  expectTelemetryType(telemetryType) {
     return new Promise((resolve) => {
       /** @type {any} */
       let tracked;

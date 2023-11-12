@@ -1,3 +1,7 @@
 {
-  "extends": ["@bonniernews/eslint-config/typescript", "../.eslintrc.json"]
+  "extends": ["@bonniernews/eslint-config/typescript", "../.eslintrc.json"],
+  "rules": {
+    "import/no-unresolved": "off",
+    "spaced-comment": "off"
+  }
 }
