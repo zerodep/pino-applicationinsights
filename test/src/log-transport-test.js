@@ -140,7 +140,7 @@ describe('log transport', () => {
     expect(exception.parsedStack[0].fileName, 'stack file name').to.include(filePath);
   });
 
-  it('logs time taken from log record', async () => {
+  it('logs time extracted from log record', async () => {
     ck.freeze();
 
     const expectMessage = fakeAI.expectMessageData();

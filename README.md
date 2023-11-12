@@ -35,20 +35,33 @@ Build transport stream function.
   * `connectionString`: Application Insights connection string or instrumentation key
   * `config`: optional Application Insights Telemetry client config
   * `destination`: optional destination stream, makes build ignore the above options
-  * `ignoreKeys`: optional pino ignore keys, defaults to `['hostname', 'pid', 'level', 'time', 'msg']`
+  * `ignoreKeys`: optional pino ignore keys, used to filter telemetry properties, defaults to `['hostname', 'pid', 'level', 'time', 'msg']`
 - `TelemetryTransformation`: optional transformation stream extending [TelemetryTransformation](#class-telemetrytransformationoptions-config)
 
 ### `class TelemetryTransformation(options[, config])`
 
 Telemetry transformation stream. Transforms pino log record to [Telemetry:ish](#telemetrish-object) object.
 
+- `constructor(options[, config])`
+  * `options`: transform stream options, `{ objectMode: true }` is always set
+  * `config`: optional config object
+    - `ignoreKeys`: optional pino ignore keys as string array
+- `_transform(chunk, encoding, callback)`
+- `convertToTelemetry(chunk)`: convert pino log record string or object to [telemetry:ish object](#telemetrish-object)
+- `convertLevel(level)`: map pino log level number to `Contracts.SeverityLevel`
+- `extractProperties(line, ignoreKeys)`: extract properties from log line
+  * `line`: log line record object
+  * `ignoreKeys`: configured ignore keys
+- properties:
+  * `ignoreKeys`: configured ignore keys, defaults to `['hostname', 'pid', 'level', 'time', 'msg']`
+
 #### Telemetrish object
 
-- `severity`: pino log level mapped to application insights `Contracts.SeverityLevel`
+- `severity`: pino log level mapped to application insights severeity level, i.e. `Contracts.SeverityLevel`
 - `msg`: log message string
 - `properties`: telemetry properties object, filtered through ignore keys
 - `exception?`: logged Error if any
-- `[k: string]`: any other properties
+- `[k: string]`: any other properties that facilitate telemetry logging
 
 ### `class FakeApplicationInsights(setupString)`
 
@@ -61,7 +74,7 @@ Intercept calls to application insights.
 - `expectExceptionData()`: Expect tracked exception, returns [`Promise<FakeCollectData>`](#fakecollectdata)
 - `expectEventType(telemetryType: string)`: Expect tracked telemetry type, returns [`Promise<FakeCollectData>`](#fakecollectdata)
   * `telemetryType`: Telemetry type string
-- `expect(count = 1)`: Expect tracked telemetrys, returns list of [`Promise<FakeCollectData[]>`](#fakecollectdata)
+- `expect(count = 1)`: Expect tracked telemetrys, returns promise with list of [`FakeCollectData`](#fakecollectdata)
   * `count`: wait for at least tracked telemetrys before returning, default is 1
 - `reset()`: Reset expected faked Application Insights calls, calls `nock.cleanAll`
 - properties:
@@ -119,19 +132,36 @@ describe('test logger', () => {
 
 #### `FakeCollectData`
 
-- `uri`: string;
-- `method`: string;
+An object representing the request sent to application insights.
+
+- `uri`: request uri
+- `method`: request method
 - `headers`: request headers object
 - `body`:
-  * `ver`: some version number
-  * `sampleRate`: sample rate number
-  * `tags`: object with tags
+  * `ver`: some version number, usually 1
+  * `sampleRate`: sample rate number, usually 100
+  * `tags`: object with tags, tag names can be inspected under `TelemetryClient.context.keys`, e.g:
+    - `ai.application.ver`: your package.json version
+    - `ai.device.id`: ?
+    - `ai.cloud.roleInstance`: computer hostname?
+    - `ai.device.osVersion`: computer os
+    - `ai.cloud.role`: Web maybe?
+    - `ai.device.osArchitecture`: probably x64
+    - `ai.device.osPlatform`: os platform, as the name says
+    - `ai.internal.sdkVersion`: applicationinsights package version, e.g. `node:2.9.1`
+    - `[tag name]`: any other tag found under `TelemetryClient.context.keys`
   * `data`:
       - `baseType`: telemetry type string
       - `baseData`:
-        * `ver`: number
+        * `ver`: some version number, usually 2 for some reason
         * `properties`: telemetry properties object
-        * `[x: string]`: any other telemetry
-- `iKey`: instrumentation key string
-- `name`: string
+        * `[message]`: logged message when tracking trace
+        * `[severityLevel]`: applicationinsights severity level number when tracking trace and exception
+        * `[exceptions]`: list of exceptions when tracking exception
+          - `message`: error message
+          - `hasFullStack`: boolean, true
+          - `parsedStack`: stack parsed as objects
+        * `[x: string]`: any other telemetry property
+- `iKey`: applicationinsights instrumentation key
+- `name`: some ms name with iKey and the tracked type
 - `time`: log time

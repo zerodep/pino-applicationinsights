@@ -1,6 +1,6 @@
 {
   "name": "@0dep/pino-applicationinsights",
-  "version": "0.0.7",
+  "version": "0.1.0",
   "description": "Pino applicationinsights transport",
   "type": "module",
   "module": "./src/index.js",
@@ -56,6 +56,7 @@
     "@types/mocha": "^10.0.3",
     "@types/node": "^16.18.60",
     "applicationinsights": "^2.9.0",
+    "applicationinsights-opentelemetry": "npm:applicationinsights@^3.0.0-beta.10",
     "c8": "^8.0.1",
     "chai": "^4.3.10",
     "chronokinesis": "^6.0.0",
