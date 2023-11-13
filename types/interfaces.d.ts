@@ -21,10 +21,12 @@ export interface ComposeConfig extends TelemetryTransformationConfig {
  * Pino to application insights transport compose config with connection string
  */
 export interface ConnectionStringComposeConfig extends ComposeConfig {
-  /** track function called with Telemetry client context */
-  track: trackFunction;
   /** Application insights connection string */
   connectionString: string;
+  /**
+   * track function called with Telemetry client context
+   */
+  track?: trackFunction;
   /**
    * optional Telemetry client config
    */
