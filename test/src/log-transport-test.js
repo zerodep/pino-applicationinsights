@@ -17,11 +17,6 @@ describe('log transport', () => {
     fakeAI = new FakeApplicationInsights(connectionString);
 
     transport = compose({
-      track(chunk) {
-        const { time, severity, msg: message, properties, exception } = chunk;
-        this.trackTrace({ time, severity, message, properties });
-        if (exception) this.trackException({ time, exception, severity });
-      },
       connectionString,
       config: { maxBatchSize: 1, disableStatsbeat: true },
     });

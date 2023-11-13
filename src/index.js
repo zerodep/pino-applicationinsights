@@ -112,7 +112,8 @@ export class TelemetryTransformation extends Transform {
  * @returns {ReturnType<typeof import('pino-abstract-transport')>}
  */
 export default function compose(opts, Transformation = TelemetryTransformation) {
-  if (!opts.destination && (!opts.track || !opts.connectionString)) {
+  const track = opts.track ?? trackTraceAndException;
+  if (!opts.destination && (typeof track !== 'function' || !opts.connectionString)) {
     throw new TypeError('track function and connectionString are required');
   }
 
@@ -131,12 +132,12 @@ export default function compose(opts, Transformation = TelemetryTransformation) 
       Object.assign(client.config, opts.config);
     }
 
-    const track = opts.track.bind(client);
+    const trackTelemetry = track.bind(client);
     destination = new Writable({
       objectMode: true,
       autoDestroy: true,
       write(chunk, _encoding, callback) {
-        track(chunk);
+        trackTelemetry(chunk);
         callback();
       },
     });
@@ -147,4 +148,17 @@ export default function compose(opts, Transformation = TelemetryTransformation) 
   return abstractTransport((source) => {
     return promises.pipeline(source, transformToTelemetry, destination);
   });
+}
+
+/**
+ * Default track function
+ *
+ * Tracks trace and occasional exception
+ * @param {import('../types/interfaces.js').LogTelemetry} chunk
+ * @this {import('applicationinsights').TelemetryClient}
+ */
+export function trackTraceAndException(chunk) {
+  const { time, severity, msg: message, properties, exception } = chunk;
+  this.trackTrace({ time, severity, message, properties });
+  if (exception) this.trackException({ time, severity, exception });
 }

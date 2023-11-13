@@ -192,9 +192,15 @@ describe('compose', () => {
       }).to.throw(TypeError, /connectionString/);
     });
 
-    it('with connection string but without track throws', () => {
+    it('with track function but without connection string throws', () => {
       expect(() => {
         compose({ track() {} });
+      }).to.throw(TypeError, /connectionString/);
+    });
+
+    it('with connection string and non-function track throws', () => {
+      expect(() => {
+        compose({ track: {} });
       }).to.throw(TypeError, /connectionString/);
     });
 
@@ -243,6 +249,28 @@ describe('compose', () => {
       expect(body.tags).to.have.property('ai.user.id', 'bar');
 
       transport.destroy();
+    });
+
+    it('defaults to tracking trace and exception', async () => {
+      const expectMessage = fakeAI.expectMessageData();
+      const expectException = fakeAI.expectExceptionData();
+
+      const transport = compose({
+        connectionString,
+        config: { maxBatchSize: 1, disableStatsbeat: true },
+      });
+
+      const logger = pino({ level: 'trace' }, transport);
+
+      logger.error(new Error('bar'), 'foo');
+
+      const msg = await expectMessage;
+
+      expect(msg.body.data).to.have.property('baseType', 'MessageData');
+
+      const err = await expectException;
+
+      expect(err.body.data).to.have.property('baseType', 'ExceptionData');
     });
   });
 });

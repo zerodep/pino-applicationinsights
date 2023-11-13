@@ -34,8 +34,10 @@
   },
   "keywords": [
     "pino",
-    "transport",
     "applicationinsights",
+    "application",
+    "insights",
+    "transport",
     "fake",
     "mock"
   ],
@@ -56,7 +58,6 @@
     "@types/mocha": "^10.0.3",
     "@types/node": "^16.18.60",
     "applicationinsights": "^2.9.0",
-    "applicationinsights-opentelemetry": "npm:applicationinsights@^3.0.0-beta.10",
     "c8": "^8.0.1",
     "chai": "^4.3.10",
     "chronokinesis": "^6.0.0",

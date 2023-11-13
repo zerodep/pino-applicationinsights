@@ -1,7 +1,7 @@
 declare module '@0dep/pino-applicationinsights' {
+	import type { TelemetryClient, Contracts } from 'applicationinsights';
 	import type { Transform } from 'node:stream';
 	import type { Writable } from 'stream';
-	import type { TelemetryClient, Contracts } from 'applicationinsights';
 	/// <reference types="node" />
 	/**
 	 * Compose Application Insights pino transport
@@ -9,6 +9,12 @@ declare module '@0dep/pino-applicationinsights' {
 	 * @param Transformation - optional Telemetry transformation stream
 	 * */
 	export default function compose(opts: ConnectionStringComposeConfig | DestinationComposeConfig, Transformation?: typeof TelemetryTransformation | undefined): ReturnType<typeof import('pino-abstract-transport')>;
+	/**
+	 * Default track function
+	 *
+	 * Tracks trace and occasional exception
+	 * */
+	export function trackTraceAndException(this: TelemetryClient, chunk: LogTelemetry): void;
 	/**
 	 * Telemetry exception
 	 * 

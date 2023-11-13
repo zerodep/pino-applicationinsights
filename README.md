@@ -4,11 +4,13 @@
 
 Forward pino logger to Application Insights.
 
+Ships with [fake applicationinsights](#class-fakeapplicationinsightssetupstring) helper test class.
+
 ## Usage
 
 ```js
 import { pino } from 'pino';
-import compose from '@zerodep/pino-applicationinsights';
+import compose from '@0dep/pino-applicationinsights';
 
 const transport = compose({
   track(chunk) {
@@ -23,6 +25,27 @@ const transport = compose({
 const logger = pino({ level: 'trace' }, transport);
 ```
 
+or as multi transport:
+
+```js
+import { pino } from 'pino';
+
+const transport = pino.transport({
+  targets: {
+    level: 'info',
+    target: '@0dep/pino-applicationinsights',
+    options: {
+      connectionString: process.env.APPLICATIONINSIGHTS_CONNECTION_STRING,
+      config: {
+        disableStatsbeat: true,
+      },
+    },
+  },
+});
+
+const logger = pino(transport);
+```
+
 ## API
 
 ### `compose(opts[, TelemetryTransformation]) => Stream`
@@ -30,11 +53,11 @@ const logger = pino({ level: 'trace' }, transport);
 Build transport stream function.
 
 - `opts`:
-  * `track(chunk)`: track function called with Telemetry client context
-    - `chunk`: [Telemetry:ish](#telemetrish-object) object
   * `connectionString`: Application Insights connection string or instrumentation key
+  * `track(chunk)`: optional track function called with Telemetry client context, defaults to tracking trace and exception
+    - `chunk`: [Telemetry:ish](#telemetrish-object) object
   * `config`: optional Application Insights Telemetry client config
-  * `destination`: optional destination stream, makes build ignore the above options
+  * `destination`: optional destination stream, makes compose ignore the above options
   * `ignoreKeys`: optional pino ignore keys, used to filter telemetry properties, defaults to `['hostname', 'pid', 'level', 'time', 'msg']`
 - `TelemetryTransformation`: optional transformation stream extending [TelemetryTransformation](#class-telemetrytransformationoptions-config)
 
