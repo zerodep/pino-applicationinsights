@@ -25,8 +25,10 @@ export interface ConnectionStringComposeConfig extends ComposeConfig {
   connectionString: string;
   /**
    * track function called with Telemetry client context
+   * @example
+   * this.trackTrace({ time: chunk.time, message: chunk.msg });
    */
-  track?: trackFunction;
+  track?: (this: TelemetryClient, chunk: LogTelemetry) => void;
   /**
    * optional Telemetry client config
    */
@@ -60,6 +62,8 @@ declare interface FakeCollectBody {
     baseData: {
       ver: number;
       properties: Record<string, any>;
+      message?: string
+      severityLevel?: number
       [x: string]: any;
     },
   };
@@ -69,7 +73,9 @@ declare interface FakeCollectBody {
 }
 
 export interface FakeCollectData {
+  /** request uri */
   uri: string;
+  /** request method */
   method: string;
   headers: Record<string, any>;
   body: FakeCollectBody;

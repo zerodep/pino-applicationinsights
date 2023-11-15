@@ -57,8 +57,6 @@ declare module '@0dep/pino-applicationinsights' {
 		 * */
 		extractProperties(line: any, ignoreKeys?: string[] | undefined): any;
 	}
-  type trackFunction = (this: TelemetryClient, chunk: LogTelemetry) => void;
-
   interface TelemetryTransformationConfig {
 	/**
 	 * pino ignore keys, filters Telemetry properties
@@ -75,10 +73,14 @@ declare module '@0dep/pino-applicationinsights' {
    * Pino to application insights transport compose config with connection string
    */
   interface ConnectionStringComposeConfig extends ComposeConfig {
-	/** track function called with Telemetry client context */
-	track: trackFunction;
 	/** Application insights connection string */
 	connectionString: string;
+	/**
+	 * track function called with Telemetry client context
+	 * @example
+	 * this.trackTrace({ time: chunk.time, message: chunk.msg });
+	 */
+	track?: (this: TelemetryClient, chunk: LogTelemetry) => void;
 	/**
 	 * optional Telemetry client config
 	 */
@@ -166,6 +168,8 @@ declare module '@0dep/pino-applicationinsights/fake-applicationinsights' {
 	  baseData: {
 		ver: number;
 		properties: Record<string, any>;
+		message?: string
+		severityLevel?: number
 		[x: string]: any;
 	  },
 	};
@@ -175,7 +179,9 @@ declare module '@0dep/pino-applicationinsights/fake-applicationinsights' {
   }
 
   interface FakeCollectData {
+	/** request uri */
 	uri: string;
+	/** request method */
 	method: string;
 	headers: Record<string, any>;
 	body: FakeCollectBody;

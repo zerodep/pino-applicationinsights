@@ -185,6 +185,6 @@ An object representing the request sent to application insights.
           - `hasFullStack`: boolean, true
           - `parsedStack`: stack parsed as objects
         * `[x: string]`: any other telemetry property
-- `iKey`: applicationinsights instrumentation key
-- `name`: some ms name with iKey and the tracked type
-- `time`: log time
+  * `iKey`: applicationinsights instrumentation key
+  * `name`: some ms name with iKey and the tracked type
+  * `time`: log time
