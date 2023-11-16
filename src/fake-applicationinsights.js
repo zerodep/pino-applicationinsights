@@ -93,12 +93,19 @@ export class FakeApplicationInsights {
 
       this._scope
         .post(this._endpointPathname, (body) => {
+          const match = collected.length <= count;
+          if (!match) return false;
+
           deflated = this.deflateSync(body);
           collected = collected.concat(this.parseLines(deflated));
-          return collected.length <= count;
+
+          return true;
         })
+        .times(count)
         .reply(function reply(uri) {
-          resolve(collected.map((l) => new CollectData(this.req.method, uri, this.req.headers, l)));
+          if (collected.length >= count) {
+            resolve(collected.map((l) => new CollectData(this.req.method, uri, this.req.headers, l)));
+          }
           return [ 200 ];
         });
     });

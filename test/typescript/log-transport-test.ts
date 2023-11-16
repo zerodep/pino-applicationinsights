@@ -14,7 +14,7 @@ describe('log transport', () => {
   before(() => {
     fakeAI = new FakeApplicationInsights(connectionString);
   });
-  after(() => {
+  afterEach(() => {
     fakeAI.reset();
   });
 
@@ -113,7 +113,7 @@ describe('log transport', () => {
     expect(client.getStatsbeat().isEnabled()).to.be.false;
   });
 
-  it('fake application insights expect telemetry', async () => {
+  it('fake application insights expect telemetry type', async () => {
     const expectTelemetry = fakeAI.expectTelemetryType('MetricData');
 
     const transport = compose({
