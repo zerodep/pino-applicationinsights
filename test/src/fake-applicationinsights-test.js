@@ -32,7 +32,7 @@ describe('fake applicationinsights', () => {
       logger.error(new Error('bar'), 'foo');
       logger.info('baz');
 
-      const msgs = await Promise.all([ expectMessage1, expectException, expectMessage2 ]);
+      const msgs = await Promise.all([expectMessage1, expectException, expectMessage2]);
 
       expect(msgs[0].body.data.baseType, '# 0').to.equal('MessageData');
       expect(msgs[0].body.data.baseData.message, '# 1').to.equal('foo');
@@ -132,7 +132,7 @@ describe('fake applicationinsights', () => {
           .times(ingestCount)
           .reply(() => {
             if (!--ingestCount) resolve();
-            return [ 200 ];
+            return [200];
           });
       });
 
@@ -164,7 +164,7 @@ describe('fake applicationinsights', () => {
           .times(ingestCount)
           .reply(() => {
             if (!--ingestCount) resolve();
-            return [ 200 ];
+            return [200];
           });
       });
 

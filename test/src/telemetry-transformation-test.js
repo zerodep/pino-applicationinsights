@@ -21,9 +21,12 @@ describe('TelemetryTransformation', () => {
       },
     });
 
-    const transport = abstractTransport((source) => {
-      pipeline(source, new TelemetryTransformation(), destination, () => {});
-    }, { parse: 'lines' });
+    const transport = abstractTransport(
+      (source) => {
+        pipeline(source, new TelemetryTransformation(), destination, () => {});
+      },
+      { parse: 'lines' },
+    );
 
     const logger = pino(transport);
 

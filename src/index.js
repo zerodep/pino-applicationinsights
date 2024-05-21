@@ -32,7 +32,7 @@ export class Exception extends Error {
  */
 export class TelemetryTransformation extends Transform {
   /** Log line key names to ignore when extracting properties */
-  ignoreKeys = [ 'hostname', 'pid', 'level', 'time', 'msg' ];
+  ignoreKeys = ['hostname', 'pid', 'level', 'time', 'msg'];
   /**
    * @constructor
    * @param {import('stream').TransformOptions} [options] - optional stream options
@@ -97,7 +97,7 @@ export class TelemetryTransformation extends Transform {
   extractProperties(line, ignoreKeys) {
     /** @type {Record<string, any>} */
     const properties = {};
-    for (const [ k, v ] of Object.entries(line)) {
+    for (const [k, v] of Object.entries(line)) {
       if (ignoreKeys?.includes(k)) continue;
       properties[k] = v;
     }

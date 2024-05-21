@@ -3,9 +3,5 @@
   "exit": true,
   "extension": ["ts"],
   "require": ["./test/helpers/setup.js"],
-	"node-option": [
-		"experimental-specifier-resolution=node",
-    "no-warnings",
-		"loader=ts-node/esm"
-	]
+  "node-option": ["experimental-specifier-resolution=node", "no-warnings", "loader=ts-node/esm"]
 }

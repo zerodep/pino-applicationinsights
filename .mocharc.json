@@ -1,5 +1,5 @@
 {
   "recursive": true,
   "exit": true,
-  "require": ["./test/helpers/setup.js"]
+  "require": ["chai/register-expect.js", "./test/helpers/setup.js"]
 }

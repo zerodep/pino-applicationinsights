@@ -34,7 +34,7 @@ describe('compose', () => {
       const msgs = [];
 
       const transport = compose({
-        ignoreKeys: [ 'pid', 'hostname', 'level', 'msg', 'bar', 'time' ],
+        ignoreKeys: ['pid', 'hostname', 'level', 'msg', 'bar', 'time'],
         destination: new Writable({
           autoDestroy: true,
           objectMode: true,

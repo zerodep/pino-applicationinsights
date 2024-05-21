@@ -25,10 +25,10 @@ export class FakeApplicationInsights {
    * @param {string} [setupString] - Fake application insights connection string
    */
   constructor(setupString) {
-    const client = this.client = new TelemetryClient(setupString);
+    const client = (this.client = new TelemetryClient(setupString));
     client.getStatsbeat().enable(false);
 
-    const endpointURL = this._endpointURL = new URL(client.config.endpointUrl);
+    const endpointURL = (this._endpointURL = new URL(client.config.endpointUrl));
 
     this._endpointPathname = endpointURL.pathname;
     this._scope = nock(endpointURL.origin, {
@@ -76,7 +76,7 @@ export class FakeApplicationInsights {
         })
         .reply(function reply(uri) {
           resolve(new CollectData(this.req.method, uri, this.req.headers, tracked));
-          return [ 200 ];
+          return [200];
         });
     });
   }
@@ -106,7 +106,7 @@ export class FakeApplicationInsights {
           if (collected.length >= count) {
             resolve(collected.map((l) => new CollectData(this.req.method, uri, this.req.headers, l)));
           }
-          return [ 200 ];
+          return [200];
         });
     });
   }

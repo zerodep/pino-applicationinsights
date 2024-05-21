@@ -1,7 +1,7 @@
 /// <reference types="node" />
 
-import { Writable } from 'stream'
-import { TelemetryClient, Contracts } from 'applicationinsights'
+import { Writable } from 'stream';
+import { TelemetryClient, Contracts } from 'applicationinsights';
 
 export type trackFunction = (this: TelemetryClient, chunk: LogTelemetry) => void;
 
@@ -14,7 +14,7 @@ export interface TelemetryTransformationConfig {
 }
 
 export interface ComposeConfig extends TelemetryTransformationConfig {
-  [k: string]: any,
+  [k: string]: any;
 }
 
 /**
@@ -62,10 +62,10 @@ declare interface FakeCollectBody {
     baseData: {
       ver: number;
       properties: Record<string, any>;
-      message?: string
-      severityLevel?: number
+      message?: string;
+      severityLevel?: number;
       [x: string]: any;
-    },
+    };
   };
   iKey: string;
   name: string;

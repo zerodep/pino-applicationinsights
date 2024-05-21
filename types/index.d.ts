@@ -1,5 +1,5 @@
 declare module '@0dep/pino-applicationinsights' {
-	import type { TelemetryClient, Contracts } from 'applicationinsights';
+	import type { TelemetryClient, Contracts as Contracts_1 } from 'applicationinsights';
 	import type { Transform } from 'node:stream';
 	import type { Writable } from 'stream';
 	/// <reference types="node" />
@@ -66,7 +66,7 @@ declare module '@0dep/pino-applicationinsights' {
   }
 
   interface ComposeConfig extends TelemetryTransformationConfig {
-	[k: string]: any,
+	[k: string]: any;
   }
 
   /**
@@ -95,8 +95,8 @@ declare module '@0dep/pino-applicationinsights' {
 	destination: Writable;
   }
 
-  interface LogTelemetry extends Contracts.Telemetry {
-	severity: Contracts.SeverityLevel;
+  interface LogTelemetry extends Contracts_1.Telemetry {
+	severity: Contracts_1.SeverityLevel;
 	/** Pino log message */
 	msg: string;
 	/** Telemetry properties */
@@ -168,10 +168,10 @@ declare module '@0dep/pino-applicationinsights/fake-applicationinsights' {
 	  baseData: {
 		ver: number;
 		properties: Record<string, any>;
-		message?: string
-		severityLevel?: number
+		message?: string;
+		severityLevel?: number;
 		[x: string]: any;
-	  },
+	  };
 	};
 	iKey: string;
 	name: string;

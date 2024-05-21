@@ -94,7 +94,7 @@ describe('log transport', () => {
 
     expect(err.body.data.baseData).to.have.property('exceptions').with.length(1);
 
-    const [ exception ] = err.body.data.baseData.exceptions;
+    const [exception] = err.body.data.baseData.exceptions;
 
     expect(exception).to.deep.include({
       typeName: 'TypeError',
@@ -122,7 +122,7 @@ describe('log transport', () => {
     expect(err.body.data.baseData).to.have.property('severityLevel', Contracts.SeverityLevel.Critical);
     expect(err.body.data.baseData).to.have.property('exceptions').with.length(1);
 
-    const [ exception ] = err.body.data.baseData.exceptions;
+    const [exception] = err.body.data.baseData.exceptions;
 
     expect(exception).to.deep.include({
       typeName: 'Error',

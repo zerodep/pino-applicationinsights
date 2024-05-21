@@ -8,7 +8,7 @@ Ships with [fake applicationinsights](#class-fakeapplicationinsightssetupstring)
 
 ## Usage
 
-```js
+```javascript
 import { pino } from 'pino';
 import compose from '@0dep/pino-applicationinsights';
 
@@ -18,7 +18,7 @@ const transport = compose({
     this.trackTrace({ time, severity, message, properties });
     if (exception) this.trackException({ time, exception, severity });
   },
-  connectionString,
+  connectionString: process.env.APPLICATIONINSIGHTS_CONNECTION_STRING,
   config: { maxBatchSize: 1 },
 });
 
@@ -27,20 +27,22 @@ const logger = pino({ level: 'trace' }, transport);
 
 or as multi transport:
 
-```js
+```javascript
 import { pino } from 'pino';
 
 const transport = pino.transport({
-  targets: {
-    level: 'info',
-    target: '@0dep/pino-applicationinsights',
-    options: {
-      connectionString: process.env.APPLICATIONINSIGHTS_CONNECTION_STRING,
-      config: {
-        disableStatsbeat: true,
+  targets: [
+    {
+      level: 'info',
+      target: '@0dep/pino-applicationinsights',
+      options: {
+        connectionString: process.env.APPLICATIONINSIGHTS_CONNECTION_STRING,
+        config: {
+          disableStatsbeat: true,
+        },
       },
     },
-  },
+  ],
 });
 
 const logger = pino(transport);
@@ -53,12 +55,12 @@ const logger = pino(transport);
 Build transport stream function.
 
 - `opts`:
-  * `connectionString`: Application Insights connection string or instrumentation key
-  * `track(chunk)`: optional track function called with Telemetry client context, defaults to tracking trace and exception
+  - `connectionString`: Application Insights connection string or instrumentation key
+  - `track(chunk)`: optional track function called with Telemetry client context, defaults to tracking trace and exception
     - `chunk`: [Telemetry:ish](#telemetrish-object) object
-  * `config`: optional Application Insights Telemetry client config
-  * `destination`: optional destination stream, makes compose ignore the above options
-  * `ignoreKeys`: optional pino ignore keys, used to filter telemetry properties, defaults to `['hostname', 'pid', 'level', 'time', 'msg']`
+  - `config`: optional Application Insights Telemetry client config
+  - `destination`: optional destination stream, makes compose ignore the above options
+  - `ignoreKeys`: optional pino ignore keys, used to filter telemetry properties, defaults to `['hostname', 'pid', 'level', 'time', 'msg']`
 - `TelemetryTransformation`: optional transformation stream extending [TelemetryTransformation](#class-telemetrytransformationoptions-config)
 
 ### `class TelemetryTransformation(options[, config])`
@@ -66,17 +68,17 @@ Build transport stream function.
 Telemetry transformation stream. Transforms pino log record to [Telemetry:ish](#telemetrish-object) object.
 
 - `constructor(options[, config])`
-  * `options`: transform stream options, `{ objectMode: true }` is always set
-  * `config`: optional config object
+  - `options`: transform stream options, `{ objectMode: true }` is always set
+  - `config`: optional config object
     - `ignoreKeys`: optional pino ignore keys as string array
 - `_transform(chunk, encoding, callback)`
 - `convertToTelemetry(chunk)`: convert pino log record string or object to [telemetry:ish object](#telemetrish-object)
 - `convertLevel(level)`: map pino log level number to `Contracts.SeverityLevel`
 - `extractProperties(line, ignoreKeys)`: extract properties from log line
-  * `line`: log line record object
-  * `ignoreKeys`: configured ignore keys
+  - `line`: log line record object
+  - `ignoreKeys`: configured ignore keys
 - properties:
-  * `ignoreKeys`: configured ignore keys, defaults to `['hostname', 'pid', 'level', 'time', 'msg']`
+  - `ignoreKeys`: configured ignore keys, defaults to `['hostname', 'pid', 'level', 'time', 'msg']`
 
 #### Telemetrish object
 
@@ -91,28 +93,29 @@ Telemetry transformation stream. Transforms pino log record to [Telemetry:ish](#
 Intercept calls to application insights.
 
 - `constructor(setupString);`
-  * `setupString`: Fake application insights connection string
+  - `setupString`: Fake application insights connection string
 - `expectMessageData()`: Expect tracked message, returns [`Promise<FakeCollectData>`](#fakecollectdata)
 - `expectEventData()`: Expect tracked event, returns [`Promise<FakeCollectData>`](#fakecollectdata)
 - `expectExceptionData()`: Expect tracked exception, returns [`Promise<FakeCollectData>`](#fakecollectdata)
 - `expectEventType(telemetryType: string)`: Expect tracked telemetry type, returns [`Promise<FakeCollectData>`](#fakecollectdata)
-  * `telemetryType`: Telemetry type string
+  - `telemetryType`: Telemetry type string
 - `expect(count = 1)`: Expect tracked telemetrys, returns promise with list of [`FakeCollectData`](#fakecollectdata)
-  * `count`: wait for at least tracked telemetrys before returning, default is 1
+  - `count`: wait for at least tracked telemetrys before returning, default is 1
 - `reset()`: Reset expected faked Application Insights calls, calls `nock.cleanAll`
 - properties:
-  * `client`: TelemetryClient, used to get endpoint URL
-  *  `_endpointURL`: endpoint URL
-  * `_scope`: nock Scope
+  - `client`: TelemetryClient, used to get endpoint URL
+  - `_endpointURL`: endpoint URL
+  - `_scope`: nock Scope
 
 #### Example
 
-```js
+```javascript
+import { describe } from 'mocha';
 import { randomUUID } from 'node:crypto';
 import { pino } from 'pino';
 
 import compose from '@0dep/pino-applicationinsights';
-import { FakeApplicationInsights } from '@0dep/pino-applicationinsights/fake-applicationinsights.js';
+import { FakeApplicationInsights } from '@0dep/pino-applicationinsights/fake-applicationinsights';
 
 describe('test logger', () => {
   const connectionString = `InstrumentationKey=${randomUUID()};IngestionEndpoint=https://ingestion.local;LiveEndpoint=https://livemonitor.local/`;
@@ -161,9 +164,9 @@ An object representing the request sent to application insights.
 - `method`: request method
 - `headers`: request headers object
 - `body`:
-  * `ver`: some version number, usually 1
-  * `sampleRate`: sample rate number, usually 100
-  * `tags`: object with tags, tag names can be inspected under `TelemetryClient.context.keys`, e.g:
+  - `ver`: some version number, usually 1
+  - `sampleRate`: sample rate number, usually 100
+  - `tags`: object with tags, tag names can be inspected under `TelemetryClient.context.keys`, e.g:
     - `ai.application.ver`: your package.json version
     - `ai.device.id`: ?
     - `ai.cloud.roleInstance`: computer hostname?
@@ -173,18 +176,18 @@ An object representing the request sent to application insights.
     - `ai.device.osPlatform`: os platform, as the name says
     - `ai.internal.sdkVersion`: applicationinsights package version, e.g. `node:2.9.1`
     - `[tag name]`: any other tag found under `TelemetryClient.context.keys`
-  * `data`:
-      - `baseType`: telemetry type string
-      - `baseData`:
-        * `ver`: some version number, usually 2 for some reason
-        * `properties`: telemetry properties object
-        * `[message]`: logged message when tracking trace
-        * `[severityLevel]`: applicationinsights severity level number when tracking trace and exception
-        * `[exceptions]`: list of exceptions when tracking exception
-          - `message`: error message
-          - `hasFullStack`: boolean, true
-          - `parsedStack`: stack parsed as objects
-        * `[x: string]`: any other telemetry property
-  * `iKey`: applicationinsights instrumentation key
-  * `name`: some ms name with iKey and the tracked type
-  * `time`: log time
+  - `data`:
+    - `baseType`: telemetry type string
+    - `baseData`:
+      - `ver`: some version number, usually 2 for some reason
+      - `properties`: telemetry properties object
+      - `[message]`: logged message when tracking trace
+      - `[severityLevel]`: applicationinsights severity level number when tracking trace and exception
+      - `[exceptions]`: list of exceptions when tracking exception
+        - `message`: error message
+        - `hasFullStack`: boolean, true
+        - `parsedStack`: stack parsed as objects
+      - `[x: string]`: any other telemetry property
+  - `iKey`: applicationinsights instrumentation key
+  - `name`: some ms name with iKey and the tracked type
+  - `time`: log time
