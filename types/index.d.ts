@@ -104,6 +104,8 @@ declare module '@0dep/pino-applicationinsights' {
 	exception?: Error;
 	[k: string]: any;
   }
+
+	export {};
 }
 
 declare module '@0dep/pino-applicationinsights/fake-applicationinsights' {
@@ -186,6 +188,8 @@ declare module '@0dep/pino-applicationinsights/fake-applicationinsights' {
 	headers: Record<string, any>;
 	body: FakeCollectBody;
   }
+
+	export {};
 }
 
 //# sourceMappingURL=index.d.ts.map

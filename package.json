@@ -1,6 +1,6 @@
 {
   "name": "@0dep/pino-applicationinsights",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Pino applicationinsights transport",
   "type": "module",
   "module": "./src/index.js",
@@ -51,30 +51,30 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^25.0.7",
+    "@rollup/plugin-commonjs": "^28.0.1",
     "@rollup/plugin-node-resolve": "^15.2.3",
-    "@types/chai": "^4.3.9",
+    "@types/chai": "^5.0.0",
     "@types/mocha": "^10.0.3",
     "@types/node": "^18.19.33",
     "applicationinsights": "^2.9.0",
-    "c8": "^9.1.0",
+    "c8": "^10.1.2",
     "chai": "^5.1.1",
     "chronokinesis": "^6.0.0",
-    "dts-buddy": "^0.4.0",
+    "dts-buddy": "^0.5.3",
     "eslint": "^9.3.0",
     "globals": "^15.3.0",
     "mocha": "^10.2.0",
     "nock": "^13.3.7",
     "pino": "^9.1.0",
-    "pino-abstract-transport": "^1.1.0",
+    "pino-abstract-transport": "^2.0.0",
     "prettier": "^3.2.5",
     "rollup": "^4.2.0",
-    "texample": "^0.0.5",
+    "texample": "^0.0.6",
     "ts-node": "^10.9.1"
   },
   "peerDependencies": {
     "applicationinsights": "2.x",
-    "pino-abstract-transport": "1.x"
+    "pino-abstract-transport": ">=2"
   },
   "optionalDependencies": {
     "nock": "*"

@@ -43,6 +43,7 @@ const rules = {
   'no-undef': 2,
   'no-underscore-dangle': 0,
   'no-unused-expressions': 2,
+  'no-unused-vars': 2,
   'no-use-before-define': 0,
   'no-var': 2,
   'no-with': 2,
@@ -62,15 +63,17 @@ const rules = {
 export default [
   js.configs.recommended,
   {
-    rules,
-  },
-  {
-    files: ['**/*.js'],
     languageOptions: {
       parserOptions: {
         sourceType: 'module',
         ecmaVersion: 2022,
       },
+    },
+    rules,
+  },
+  {
+    files: ['**/*.js'],
+    languageOptions: {
       globals: {
         ...globals.node,
         ...globals.es6,
@@ -80,22 +83,10 @@ export default [
   {
     files: ['test/**/*.js'],
     languageOptions: {
-      parserOptions: {
-        ecmaVersion: 2020,
-      },
       globals: {
         ...globals.node,
         ...globals.mocha,
         expect: 'readonly',
-        beforeEachScenario: 'readonly',
-        Buffer: 'readonly',
-        Feature: 'readonly',
-        Scenario: 'readonly',
-        Given: 'readonly',
-        When: 'readonly',
-        Then: 'readonly',
-        And: 'readonly',
-        But: 'readonly',
       },
     },
     rules: {

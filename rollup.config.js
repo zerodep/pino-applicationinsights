@@ -1,13 +1,20 @@
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
 import commonjs from '@rollup/plugin-commonjs';
+
+const nodeRequire = createRequire(fileURLToPath(import.meta.url));
+const { module, main, peerDependencies, optionalDependencies } = nodeRequire('./package.json');
+
+const external = new Set(['node:stream', 'node:zlib'].concat(Object.keys(peerDependencies)).concat(Object.keys(optionalDependencies)));
 
 export default [
   {
-    input: './src/index.js',
-    external: ['node:stream', 'applicationinsights', 'pino-abstract-transport'],
+    input: module,
+    external: [...external],
     plugins: [commonjs()],
     output: [
       {
-        file: './lib/index.cjs',
+        file: main,
         exports: 'named',
         format: 'cjs',
         footer: 'module.exports = Object.assign(exports.default, exports);',
@@ -16,7 +23,7 @@ export default [
   },
   {
     input: './src/fake-applicationinsights.js',
-    external: ['node:zlib', 'applicationinsights', 'nock'],
+    external: [...external],
     plugins: [commonjs()],
     output: [
       {
