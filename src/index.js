@@ -66,6 +66,7 @@ export class TelemetryTransformation extends Transform {
       msg: line.msg,
       severity,
       properties: this.extractProperties(line, this.ignoreKeys),
+      ...(line.tagOverrides && { tagOverrides: line.tagOverrides }),
       ...(line.err && { exception: new Exception(line.err) }),
     };
   }
@@ -98,7 +99,7 @@ export class TelemetryTransformation extends Transform {
     /** @type {Record<string, any>} */
     const properties = {};
     for (const [k, v] of Object.entries(line)) {
-      if (ignoreKeys?.includes(k)) continue;
+      if (ignoreKeys?.includes(k) || k === 'tagOverrides') continue;
       properties[k] = v;
     }
     return properties;

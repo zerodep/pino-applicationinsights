@@ -1,0 +1,7 @@
+{
+  "loglevel": "debug",
+  "applicationinsights": {
+    "loglevel": "info",
+    "connectionstring": "FROM_ENV"
+  }
+}

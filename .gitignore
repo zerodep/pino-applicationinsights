@@ -37,3 +37,4 @@ lib/
 package-lock.json
 
 *.d.ts.map
+.env

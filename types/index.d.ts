@@ -2,13 +2,12 @@ declare module '@0dep/pino-applicationinsights' {
 	import type { TelemetryClient, Contracts as Contracts_1 } from 'applicationinsights';
 	import type { Transform } from 'node:stream';
 	import type { Writable } from 'stream';
-	/// <reference types="node" />
 	/**
 	 * Compose Application Insights pino transport
 	 * @param opts - transport options
 	 * @param Transformation - optional Telemetry transformation stream
 	 * */
-	export default function compose(opts: ConnectionStringComposeConfig | DestinationComposeConfig, Transformation?: typeof TelemetryTransformation | undefined): ReturnType<typeof import('pino-abstract-transport')>;
+	export default function compose(opts: ConnectionStringComposeConfig | DestinationComposeConfig, Transformation?: typeof TelemetryTransformation | undefined): ReturnType<typeof import("pino-abstract-transport")>;
 	/**
 	 * Default track function
 	 *
@@ -21,7 +20,7 @@ declare module '@0dep/pino-applicationinsights' {
 	 */
 	export class Exception extends Error {
 		
-		constructor(serializedError: import('pino').SerializedError);
+		constructor(serializedError: import("pino").SerializedError);
 		
 		code: string | undefined;
 		type: string;
@@ -51,7 +50,7 @@ declare module '@0dep/pino-applicationinsights' {
 		/**
 		 * Convert pino log level to SeverityLevel
 		 * */
-		convertLevel(level: number): import('applicationinsights').Contracts.SeverityLevel;
+		convertLevel(level: number): import("applicationinsights").Contracts.SeverityLevel;
 		/**
 		 * Extract properties from log line
 		 * */
@@ -139,7 +138,7 @@ declare module '@0dep/pino-applicationinsights/fake-applicationinsights' {
 		 * Expect tracked telemetry type
 		 * @param telemetryType Telemetry type
 		 * */
-		expectTelemetryType(telemetryType: import('applicationinsights').Contracts.TelemetryTypeValues): Promise<FakeCollectData>;
+		expectTelemetryType(telemetryType: import("applicationinsights").Contracts.TelemetryTypeValues): Promise<FakeCollectData>;
 		/**
 		 * Expect tracked telemetrys
 		 * @param count wait for at least tracked telemetrys before returning, default is 1

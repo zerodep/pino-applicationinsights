@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.1.0] - 2024-11-16
+
+- forward `tagOverrides` to trace logging
+- add example app wiht tagOverrides logging
+
 ## [1.0.1] - 2024-10-27
 
 - peer bump `pino-abstract-transport@2` since it dropped one dependency, but for some reason it keeps all files in the entire github project, as do split2, and pino, all adding up to lots of unneccessary files being zipped and deployed to azure, deploy time to azure is correlated to number of files deployed, not to mention [applicationinsights@3](https://bundlephobia.com/package/applicationinsights), what happened between 2 and 3? END RANT
