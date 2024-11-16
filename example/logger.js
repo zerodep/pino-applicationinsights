@@ -41,7 +41,7 @@ const transport = pino.transport({
 export default pino(
   {
     level: config.loglevel,
-    mixin() {
+    mixin(context) {
       const ctx = getContext();
       if (!ctx) return {};
       return {
@@ -50,6 +50,7 @@ export default pino(
           [tagKeys.userAuthUserId]: ctx.user?.name,
           [tagKeys.userAccountId]: ctx.user?.email,
           [tagKeys.applicationVersion]: version,
+          ...context.tagOverrides,
         },
       };
     },

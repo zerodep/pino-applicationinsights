@@ -4,10 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.1.1] - 2024-11-16
+
+- pass `tagOverrides` to TelemetryClient
+
 ## [1.1.0] - 2024-11-16
 
 - forward `tagOverrides` to trace logging
-- add example app wiht tagOverrides logging
+- add example app with tagOverrides logging
 
 ## [1.0.1] - 2024-10-27
 

@@ -159,7 +159,7 @@ export default function compose(opts, Transformation = TelemetryTransformation) 
  * @this {import('applicationinsights').TelemetryClient}
  */
 export function trackTraceAndException(chunk) {
-  const { time, severity, msg: message, properties, exception } = chunk;
-  this.trackTrace({ time, severity, message, properties });
-  if (exception) this.trackException({ time, severity, exception });
+  const { time, severity, msg: message, properties, tagOverrides, exception } = chunk;
+  this.trackTrace({ time, severity, message, properties, tagOverrides });
+  if (exception) this.trackException({ time, severity, exception, tagOverrides });
 }
