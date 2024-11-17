@@ -4,6 +4,8 @@
 
 Forward pino logger to Application Insights.
 
+Have a look in [Example app](/example) to get inspiration of how to use this lib.
+
 Ships with [fake applicationinsights](#class-fakeapplicationinsightssetupstring) helper test class.
 
 ## Usage
@@ -11,6 +13,9 @@ Ships with [fake applicationinsights](#class-fakeapplicationinsightssetupstring)
 ```javascript
 import { pino } from 'pino';
 import compose from '@0dep/pino-applicationinsights';
+import { Contracts } from 'applicationinsights';
+
+const tagKeys = new Contracts.ContextTagKeys();
 
 const transport = compose({
   track(chunk) {
@@ -22,7 +27,20 @@ const transport = compose({
   config: { maxBatchSize: 1 },
 });
 
-const logger = pino({ level: 'trace' }, transport);
+const logger = pino(
+  {
+    level: 'trace',
+    mixin(context) {
+      return {
+        tagOverrides: {
+          [tagKeys.userId]: 'someUserIdPickedFromRequest',
+          ...context.tagOverrides,
+        },
+      };
+    },
+  },
+  transport,
+);
 ```
 
 or as multi transport:
@@ -42,10 +60,19 @@ const transport = pino.transport({
         },
       },
     },
+    {
+      level: 'debug',
+      target: 'pino-pretty',
+      options: {
+        colorize: true,
+        ignore: 'pid,hostname',
+        translateTime: "yyyy-mm-dd'T'HH:MM:ss.l",
+      },
+    },
   ],
 });
 
-const logger = pino(transport);
+const logger = pino({ level: 'trace' }, transport);
 ```
 
 ## API
@@ -110,8 +137,8 @@ Intercept calls to application insights.
 #### Example
 
 ```javascript
-import { describe } from 'mocha';
 import { randomUUID } from 'node:crypto';
+import 'mocha';
 import { pino } from 'pino';
 
 import compose from '@0dep/pino-applicationinsights';

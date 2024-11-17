@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.1.2] - 2024-11-17
+
+- document `tagOverrides`
+
 ## [1.1.1] - 2024-11-16
 
 - pass `tagOverrides` to TelemetryClient
