@@ -1,5 +1,4 @@
 import { timingSafeEqual, randomUUID } from 'node:crypto';
-import { HttpError } from './errors.js';
 
 /**
  * Basic auth middleware
@@ -63,38 +62,6 @@ function authenticate(users, username, password) {
 }
 
 /**
- * Basic auth
- * @param {import('express').Request} _req
- * @param {import('express').Response<any, {user:import('./auth.js').User}>} res
- * @param {import('express').NextFunction} next
- */
-export async function authorize(_req, res, next) {
-  try {
-    /** @type {import('bpmn-engine').Engine} */
-    const engine = res.locals.engine;
-    const user = res.locals.user;
-
-    const [definition] = await engine.getDefinitions();
-    const [process] = definition.context.getExecutableProcesses();
-
-    if (process.behaviour.candidateStarterGroups) {
-      if (!user?.role?.length) {
-        throw new HttpError('Forbidden', 403);
-      }
-
-      const roles = new Set(process.behaviour.candidateStarterGroups.split(',').filter(Boolean));
-      if (!user.role.some((r) => roles.has(r))) {
-        throw new HttpError('Forbidden', 403);
-      }
-    }
-
-    next();
-  } catch (err) {
-    next(err);
-  }
-}
-
-/**
  * Send unauthorized
  * @param {import('express').Response} res;
  */
@@ -108,6 +75,7 @@ function sendUnauthorized(res) {
  * @typedef {Object} User
  * @property {string} username
  * @property {string} name
+ * @property {string} [email]
  * @property {string[]} [role]
  * @property {string} [password]
  */

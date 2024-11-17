@@ -9,7 +9,10 @@ const isMainModule = process.argv[1] === fileURLToPath(import.meta.url);
 
 const app = express();
 
-const users = new Map([['superuser', { name: 'Jan Bananberg', email: 'jan.bananberg@example.local', password: 'supersecret' }]]);
+const users = new Map([
+  ['superuser', { name: 'Jane Bananberg', email: 'jane.bananberg@example.local', password: 'supersecret' }],
+  ['basicuser', { name: 'Jan Bananberg', email: 'jan.bananberg@example.local', password: 'supersecret' }],
+]);
 
 app.use('/admin', basicAuth(users));
 app.use(context());
@@ -41,11 +44,10 @@ export { app };
  * @param {import('express').NextFunction} next
  */
 function errorHandler(err, _req, res, next) {
-  /* c8 ignore next 3 */
   if (!(err instanceof Error)) return next();
 
   if (err instanceof HttpError) {
-    logger.error(err, 'Failed with %d', err.statusCode);
+    logger.warn(err, 'Failed with %d', err.statusCode);
     return res.status(err.statusCode).send({ message: err.message });
   }
 

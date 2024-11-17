@@ -9,7 +9,7 @@ import { getContext } from './middleware/context.js';
 const nodeRequire = createRequire(fileURLToPath(import.meta.url));
 const { version } = nodeRequire('../package.json');
 
-const tagKeys = new Contracts.ContextTagKeys();
+export const tagKeys = new Contracts.ContextTagKeys();
 
 const cwd = process.cwd();
 
