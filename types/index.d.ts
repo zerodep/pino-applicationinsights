@@ -7,7 +7,7 @@ declare module '@0dep/pino-applicationinsights' {
 	 * @param opts - transport options
 	 * @param Transformation - optional Telemetry transformation stream
 	 * */
-	export default function compose(opts: ConnectionStringComposeConfig | DestinationComposeConfig, Transformation?: typeof TelemetryTransformation | undefined): ReturnType<typeof import("pino-abstract-transport")>;
+	export default function compose(opts: ConnectionStringComposeConfig | DestinationComposeConfig, Transformation?: typeof TelemetryTransformation): ReturnType<typeof import("pino-abstract-transport")>;
 	/**
 	 * Default track function
 	 *
@@ -38,7 +38,7 @@ declare module '@0dep/pino-applicationinsights' {
 		 * @param options - optional stream options
 		 * @param config - optional transform options
 		 */
-		constructor(options?: import("stream").TransformOptions | undefined, config?: TelemetryTransformationConfig | undefined);
+		constructor(options?: import("stream").TransformOptions, config?: TelemetryTransformationConfig);
 		/** Log line key names to ignore when extracting properties */
 		ignoreKeys: string[];
 		
@@ -54,7 +54,7 @@ declare module '@0dep/pino-applicationinsights' {
 		/**
 		 * Extract properties from log line
 		 * */
-		extractProperties(line: any, ignoreKeys?: string[] | undefined): any;
+		extractProperties(line: any, ignoreKeys?: string[]): any;
 	}
   interface TelemetryTransformationConfig {
 	/**
@@ -117,7 +117,7 @@ declare module '@0dep/pino-applicationinsights/fake-applicationinsights' {
 		/**
 		 * @param setupString - Fake application insights connection string
 		 */
-		constructor(setupString?: string | undefined);
+		constructor(setupString?: string);
 		client: TelemetryClient;
 		_endpointURL: URL;
 		_endpointPathname: string;
@@ -143,7 +143,7 @@ declare module '@0dep/pino-applicationinsights/fake-applicationinsights' {
 		 * Expect tracked telemetrys
 		 * @param count wait for at least tracked telemetrys before returning, default is 1
 		 * */
-		expect(count?: number | undefined): Promise<FakeCollectData[]>;
+		expect(count?: number): Promise<FakeCollectData[]>;
 		/**
 		 * Parse multiline JSON
 		 * */
