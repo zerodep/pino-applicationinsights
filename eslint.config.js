@@ -71,7 +71,7 @@ export default [
     rules,
   },
   {
-    files: ['**/*.js'],
+    files: ['**/*.js', '**/*.mjs'],
     languageOptions: {
       globals: {
         ...globals.node,
@@ -80,7 +80,7 @@ export default [
     },
   },
   {
-    files: ['test/**/*.js'],
+    files: ['test/**/*.js', 'test/**/*.mjs'],
     languageOptions: {
       globals: {
         ...globals.node,

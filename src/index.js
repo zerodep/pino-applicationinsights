@@ -1,6 +1,12 @@
 import { Writable, Transform, promises } from 'node:stream';
-import { Contracts, TelemetryClient } from 'applicationinsights';
+import * as applicationinsights from 'applicationinsights';
 import abstractTransport from 'pino-abstract-transport';
+
+import { applyClientConfig } from './client-compat.js';
+
+const { TelemetryClient } = applicationinsights;
+
+const SeverityLevel = applicationinsights.Contracts?.SeverityLevel ?? /** @type {any} */ (applicationinsights).KnownSeverityLevel;
 
 /**
  * Telemetry exception
@@ -59,6 +65,7 @@ export class TelemetryTransformation extends Transform {
    */
   convertToTelemetry(chunk) {
     const line = typeof chunk === 'string' ? JSON.parse(chunk) : chunk;
+
     const severity = this.convertLevel(line.level);
 
     return {
@@ -71,22 +78,22 @@ export class TelemetryTransformation extends Transform {
     };
   }
   /**
-   * Convert pino log level to SeverityLevel
+   * Convert pino log level to numeric Application Insights severity (wire format).
    * @param {number} level
-   * @returns {import('applicationinsights').Contracts.SeverityLevel}
+   * @returns {number}
    */
   convertLevel(level) {
     switch (level) {
       case 30:
-        return Contracts.SeverityLevel.Information;
+        return SeverityLevel.Information;
       case 40:
-        return Contracts.SeverityLevel.Warning;
+        return SeverityLevel.Warning;
       case 50:
-        return Contracts.SeverityLevel.Error;
+        return SeverityLevel.Error;
       case 60:
-        return Contracts.SeverityLevel.Critical;
+        return SeverityLevel.Critical;
       default:
-        return Contracts.SeverityLevel.Verbose;
+        return SeverityLevel.Verbose;
     }
   }
   /**
@@ -126,12 +133,7 @@ export default function compose(opts, Transformation = TelemetryTransformation) 
   } else {
     const client = new TelemetryClient(opts.connectionString);
 
-    if (opts.config) {
-      if (opts.config.disableStatsbeat) {
-        client.getStatsbeat().enable(false);
-      }
-      Object.assign(client.config, opts.config);
-    }
+    applyClientConfig(client, opts.config);
 
     const trackTelemetry = track.bind(client);
     destination = new Writable({

@@ -1,9 +1,8 @@
 {
-  "include": ["src/**/*", "types"],
+  "include": ["src/**/*", "types", "example/**/*"],
   "compilerOptions": {
     "emitDeclarationOnly": true,
     "sourceMap": false,
-    "rootDir": "src",
     "lib": ["es2017"],
     "target": "es2017",
     "outDir": "./tmp/ignore",
@@ -12,8 +11,8 @@
     "noErrorTruncation": true,
     "allowJs": true,
     "checkJs": true,
-    "module": "esnext",
-    "moduleResolution": "node",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,

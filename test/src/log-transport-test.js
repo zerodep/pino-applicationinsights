@@ -1,184 +1,197 @@
+import { mock } from 'node:test';
 import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { pino } from 'pino';
-import { Contracts } from 'applicationinsights';
 import * as ck from 'chronokinesis';
 
-import compose from '../../src/index.js';
 import { FakeApplicationInsights } from '../../src/fake-applicationinsights.js';
 
 const filePath = fileURLToPath(import.meta.url);
 
-const tagKeys = new Contracts.ContextTagKeys();
+const wireSeverity = {
+  applicationinsights: { Verbose: 0, Information: 1, Warning: 2, Error: 3, Critical: 4 },
+  'applicationinsights-v3': { Verbose: 'Verbose', Information: 'Information', Warning: 'Warning', Error: 'Error', Critical: 'Critical' },
+};
 
-describe('log transport', () => {
-  const connectionString = `InstrumentationKey=${randomUUID()};IngestionEndpoint=https://ingestion.local;LiveEndpoint=https://livemonitor.local/`;
+let cacheBust = 0;
 
-  let logger, transport, fakeAI;
-  before(() => {
-    fakeAI = new FakeApplicationInsights(connectionString);
+['applicationinsights', 'applicationinsights-v3'].forEach((version) => {
+  describe(`log transport ${version}`, () => {
+    const connectionString = `InstrumentationKey=${randomUUID()};IngestionEndpoint=https://ingestion.local;LiveEndpoint=https://livemonitor.local/`;
 
-    transport = compose({
-      connectionString,
-      config: { maxBatchSize: 1, disableStatsbeat: true },
+    const SeverityLevel = wireSeverity[version];
+    let logger;
+    let transport;
+    let fakeAI;
+    let tagKeys;
+    let TelemetryClient;
+
+    before(async () => {
+      const ai = await import(version);
+      TelemetryClient = ai.TelemetryClient;
+      mock.module('applicationinsights', { namedExports: ai, defaultExport: ai });
+      const compose = (await import(`../../src/index.js?v=${version}-${++cacheBust}`)).default;
+
+      for (const method of ['trackTrace', 'trackException', 'trackEvent', 'trackMetric']) {
+        const original = TelemetryClient.prototype[method];
+        if (typeof original !== 'function') continue;
+        mock.method(TelemetryClient.prototype, method, function autoFlush(...args) {
+          const result = original.apply(this, args);
+          if (typeof this.flush === 'function') this.flush();
+          return result;
+        });
+      }
+
+      const probe = new TelemetryClient(connectionString);
+      tagKeys = probe.context.keys;
+
+      fakeAI = new FakeApplicationInsights(connectionString);
+
+      transport = compose({
+        connectionString,
+        config: { maxBatchSize: 1, disableStatsbeat: true },
+      });
+
+      logger = pino({ level: 'trace', mixin }, transport);
     });
 
-    logger = pino({ level: 'trace', mixin }, transport);
-  });
-  after(() => {
-    transport.destroy();
-    fakeAI.reset();
-  });
-  afterEach(ck.reset);
-
-  it('logs debug', async () => {
-    const expectMessage = fakeAI.expectMessageData();
-
-    logger.debug({ bar: 'baz' }, 'foo');
-
-    const msg = await expectMessage;
-
-    expect(msg.body.data.baseData).to.deep.include({ severityLevel: Contracts.SeverityLevel.Verbose, message: 'foo' });
-
-    expect(msg.body.tags).to.deep.include({ [tagKeys.userId]: 'uzer' });
-  });
-
-  it('logs info', async () => {
-    const expectMessage = fakeAI.expectMessageData();
-
-    logger.info({ bar: 'baz' }, 'foo');
-
-    const msg = await expectMessage;
-
-    expect(msg.body.data.baseData).to.deep.include({ severityLevel: Contracts.SeverityLevel.Information, message: 'foo' });
-  });
-
-  it('logs info with tag overrides', async () => {
-    const expectMessage = fakeAI.expectMessageData();
-
-    logger.info({ bar: 'baz', tagOverrides: { [tagKeys.userAuthUserId]: 'Jan Bananberg' } }, 'foo');
-
-    const msg = await expectMessage;
-
-    expect(msg.body.tags).to.deep.include({ [tagKeys.userAuthUserId]: 'Jan Bananberg' });
-  });
-
-  it('logs warn', async () => {
-    const expectMessage = fakeAI.expectMessageData();
-
-    logger.warn({ bar: 'baz' }, 'foo');
-
-    const msg = await expectMessage;
-
-    expect(msg.body.data.baseData).to.deep.include({ severityLevel: Contracts.SeverityLevel.Warning, message: 'foo' });
-  });
-
-  it('logs error', async () => {
-    const expectMessage = fakeAI.expectMessageData();
-    const expectException = fakeAI.expectExceptionData();
-
-    logger.error(new Error('bar'), 'foo');
-
-    const msg = await expectMessage;
-
-    expect(msg.body.data.baseData).to.deep.include({ severityLevel: Contracts.SeverityLevel.Error, message: 'foo' });
-
-    const err = await expectException;
-
-    expect(err.body.data.baseData).to.have.property('severityLevel', Contracts.SeverityLevel.Error);
-    expect(err.body.data.baseData).to.have.property('exceptions').with.length(1);
-    expect(err.body.data.baseData.exceptions[0]).to.deep.include({
-      hasFullStack: true,
-      message: 'bar',
+    after(() => {
+      transport.destroy();
+      fakeAI.reset();
+      mock.restoreAll();
     });
-  });
+    afterEach(ck.reset);
 
-  it('log error logs exception with stack', async () => {
-    const expectMessage = fakeAI.expectMessageData();
-    const expectException = fakeAI.expectExceptionData();
+    function mixin(context) {
+      return { tagOverrides: { [tagKeys.userId]: 'uzer', ...context.tagOverrides } };
+    }
 
-    const error = new TypeError('bar');
-    error.code = 'ERR_TEST';
+    it('logs debug', async () => {
+      const expectMessage = fakeAI.expectMessageData();
 
-    logger.error(error, 'foo');
+      logger.debug({ bar: 'baz' }, 'foo');
 
-    await expectMessage;
+      const msg = await expectMessage;
 
-    const err = await expectException;
-
-    expect(err.body.data.baseData).to.have.property('exceptions').with.length(1);
-
-    const [exception] = err.body.data.baseData.exceptions;
-
-    expect(exception).to.deep.include({
-      typeName: 'TypeError',
-      hasFullStack: true,
-      message: 'bar',
+      expect(msg.body.data.baseData).to.deep.include({ severityLevel: SeverityLevel.Verbose, message: 'foo' });
     });
 
-    expect(exception).to.have.property('parsedStack').with.property('length').that.is.above(0);
+    it('logs info', async () => {
+      const expectMessage = fakeAI.expectMessageData();
 
-    expect(exception.parsedStack[0].fileName, 'stack file name').to.include(filePath);
-  });
+      logger.info({ bar: 'baz' }, 'foo');
 
-  it('logs exception with tag overrides', async () => {
-    const expectMessage = fakeAI.expectMessageData();
-    const expectException = fakeAI.expectExceptionData();
+      const msg = await expectMessage;
 
-    logger.error(new Error('bar'), 'foo');
-
-    const msg = await expectMessage;
-
-    expect(msg.body.tags).to.deep.include({ [tagKeys.userId]: 'uzer' });
-
-    const err = await expectException;
-
-    expect(err.body.tags).to.deep.include({ [tagKeys.userId]: 'uzer' });
-  });
-
-  it('logs fatal', async () => {
-    const expectMessage = fakeAI.expectMessageData();
-    const expectException = fakeAI.expectExceptionData();
-
-    logger.fatal(new Error('bar'), 'foo');
-
-    const msg = await expectMessage;
-
-    expect(msg.body.data.baseData).to.deep.include({ severityLevel: Contracts.SeverityLevel.Critical, message: 'foo' });
-
-    const err = await expectException;
-
-    expect(err.body.data.baseData).to.have.property('severityLevel', Contracts.SeverityLevel.Critical);
-    expect(err.body.data.baseData).to.have.property('exceptions').with.length(1);
-
-    const [exception] = err.body.data.baseData.exceptions;
-
-    expect(exception).to.deep.include({
-      typeName: 'Error',
-      hasFullStack: true,
-      message: 'bar',
+      expect(msg.body.data.baseData).to.deep.include({ severityLevel: SeverityLevel.Information, message: 'foo' });
     });
 
-    expect(exception).to.have.property('parsedStack').with.property('length').that.is.above(0);
+    it('logs warn', async () => {
+      const expectMessage = fakeAI.expectMessageData();
 
-    expect(exception.parsedStack[0].fileName, 'stack file name').to.include(filePath);
-  });
+      logger.warn({ bar: 'baz' }, 'foo');
 
-  it('logs time extracted from log record', async () => {
-    ck.freeze();
+      const msg = await expectMessage;
 
-    const expectMessage = fakeAI.expectMessageData();
+      expect(msg.body.data.baseData).to.deep.include({ severityLevel: SeverityLevel.Warning, message: 'foo' });
+    });
 
-    logger.info('foo');
+    it('logs error', async () => {
+      const expectMessage = fakeAI.expectMessageData();
+      const expectException = fakeAI.expectExceptionData();
 
-    const msg = await expectMessage;
+      logger.error(new Error('bar'), 'foo');
 
-    expect(msg.body.time).to.equal(new Date().toISOString());
+      const msg = await expectMessage;
+
+      expect(msg.body.data.baseData).to.deep.include({ severityLevel: SeverityLevel.Error, message: 'foo' });
+
+      const err = await expectException;
+
+      expect(err.body.data.baseData).to.have.property('severityLevel', SeverityLevel.Error);
+      expect(err.body.data.baseData).to.have.property('exceptions').with.length(1);
+      expect(err.body.data.baseData.exceptions[0]).to.include({ message: 'bar' });
+    });
+
+    it('logs fatal', async () => {
+      const expectMessage = fakeAI.expectMessageData();
+      const expectException = fakeAI.expectExceptionData();
+
+      logger.fatal(new Error('bar'), 'foo');
+
+      const msg = await expectMessage;
+
+      expect(msg.body.data.baseData).to.deep.include({ severityLevel: SeverityLevel.Critical, message: 'foo' });
+
+      const err = await expectException;
+
+      expect(err.body.data.baseData).to.have.property('severityLevel', SeverityLevel.Critical);
+      expect(err.body.data.baseData).to.have.property('exceptions').with.length(1);
+      expect(err.body.data.baseData.exceptions[0]).to.include({ typeName: 'Error', message: 'bar' });
+    });
+
+    if (version === 'applicationinsights') {
+      it('logs time extracted from log record', async () => {
+        const frozen = new Date('2026-04-18T00:00:00.000Z');
+        ck.freeze(frozen);
+
+        const expectMessage = fakeAI.expectMessageData();
+
+        logger.info('foo');
+
+        const msg = await expectMessage;
+
+        expect(msg.body.time).to.equal(frozen.toISOString());
+      });
+    }
+
+    if (version === 'applicationinsights') {
+      it('logs info with tag overrides', async () => {
+        const expectMessage = fakeAI.expectMessageData();
+
+        logger.info({ bar: 'baz', tagOverrides: { [tagKeys.userAuthUserId]: 'Jan Bananberg' } }, 'foo');
+
+        const msg = await expectMessage;
+
+        expect(msg.body.tags).to.deep.include({ [tagKeys.userAuthUserId]: 'Jan Bananberg' });
+      });
+
+      it('log error logs exception with stack', async () => {
+        const expectMessage = fakeAI.expectMessageData();
+        const expectException = fakeAI.expectExceptionData();
+
+        const error = new TypeError('bar');
+        error.code = 'ERR_TEST';
+
+        logger.error(error, 'foo');
+
+        await expectMessage;
+
+        const err = await expectException;
+
+        expect(err.body.data.baseData).to.have.property('exceptions').with.length(1);
+
+        const [exception] = err.body.data.baseData.exceptions;
+
+        expect(exception).to.deep.include({ typeName: 'TypeError', hasFullStack: true, message: 'bar' });
+        expect(exception).to.have.property('parsedStack').with.property('length').that.is.above(0);
+        expect(exception.parsedStack[0].fileName, 'stack file name').to.include(filePath);
+      });
+
+      it('logs exception with tag overrides', async () => {
+        const expectMessage = fakeAI.expectMessageData();
+        const expectException = fakeAI.expectExceptionData();
+
+        logger.error(new Error('bar'), 'foo');
+
+        const msg = await expectMessage;
+
+        expect(msg.body.tags).to.deep.include({ [tagKeys.userId]: 'uzer' });
+
+        const err = await expectException;
+
+        expect(err.body.tags).to.deep.include({ [tagKeys.userId]: 'uzer' });
+      });
+    }
   });
 });
-
-function mixin(context) {
-  return {
-    tagOverrides: { [tagKeys.userId]: 'uzer', ...context.tagOverrides },
-  };
-}

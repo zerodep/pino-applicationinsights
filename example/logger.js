@@ -1,15 +1,17 @@
 import { join } from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
-import { pino } from 'pino';
+import pino from 'pino';
 import config from 'exp-config';
-import { Contracts } from 'applicationinsights';
+import { TelemetryClient } from 'applicationinsights';
 import { getContext } from './middleware/context.js';
 
 const nodeRequire = createRequire(fileURLToPath(import.meta.url));
 const { version } = nodeRequire('../package.json');
 
-export const tagKeys = new Contracts.ContextTagKeys();
+const destination = config.logging?.target === 'file' ? `./logs/${config.envName}.log` : 1;
+
+export const tagKeys = new TelemetryClient(config.applicationinsights.connectionstring).context.keys;
 
 const cwd = process.cwd();
 
@@ -18,11 +20,15 @@ const transport = pino.transport({
     {
       level: config.applicationinsights.loglevel,
       target: join(cwd, './src/index.js'),
+      worker: {
+        env: { ...process.env, APPLICATION_INSIGHTS_NO_STATSBEAT: 'disable' },
+      },
       options: {
         connectionString: config.applicationinsights.connectionstring,
         config: {
           disableStatsbeat: true,
           maxBatchSize: 1,
+          ...config.applicationinsights.config,
         },
       },
     },
@@ -30,6 +36,7 @@ const transport = pino.transport({
       level: config.loglevel,
       target: 'pino-pretty',
       options: {
+        destination,
         colorize: true,
         ignore: 'pid,hostname',
         translateTime: "yyyy-mm-dd'T'HH:MM:ss.l",
@@ -41,6 +48,9 @@ const transport = pino.transport({
 export default pino(
   {
     level: config.loglevel,
+    /**
+     * @param {any} context
+     */
     mixin(context) {
       const ctx = getContext();
       if (!ctx) return {};

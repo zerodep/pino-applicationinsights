@@ -38,3 +38,12 @@ package-lock.json
 
 *.d.ts.map
 .env
+
+# AI assistants
+CLAUDE.md
+.claude
+.agents
+.pi
+
+*.log
+/logs/

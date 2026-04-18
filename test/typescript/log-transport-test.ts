@@ -110,7 +110,7 @@ describe('log transport', () => {
 
     const client = await tracked;
 
-    expect(client.getStatsbeat().isEnabled()).to.be.false;
+    expect(client.config.disableStatsbeat).to.be.true;
   });
 
   it('fake application insights expect telemetry type', async () => {

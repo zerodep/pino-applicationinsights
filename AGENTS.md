@@ -1,0 +1,94 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Commands
+
+- `npm test` — runs the full pipeline: `npm run build` (pretest) → mocha against `test/src/**/*.js` and `test/commonjs/**/*.cjs` → `npm run test:ts` → `npm run lint` (posttest). **Lint must always run after tests** — never skip it, never reorder it. Don't paper over an SDK warning with an env var; fix the underlying nock setup.
+- `npm run test:ts` — runs the TypeScript consumer test in `test/typescript/log-transport-test.ts` via `ts-node/esm`. Has its own `.mocharc.json`.
+- `npm run lint` — `eslint . --cache && prettier . --check --cache`.
+- `npm run build` — Rollup bundles `src/index.js` → `lib/index.cjs` and `src/fake-applicationinsights.js` → `lib/fake-applicationinsights.cjs`, then `dts-buddy` regenerates `types/index.d.ts`. Required before tests because the CommonJS test (`test/commonjs/log-transport-test.cjs`) imports the built `lib/`.
+- `npm run cov:html` / `npm run test:lcov` — coverage via c8 over `src`. The lcov output is uploaded to Coveralls in CI; see **Coverage** below.
+- Run a single test: `npx mocha test/src/compose-test.js` (or `--grep "pattern"`). For TS: `npx mocha --config test/typescript/.mocharc.json --grep "pattern"`.
+- Node `>=16` required; `.nvmrc` pins Node 20. Mocha is launched with `--experimental-test-module-mocks` (set in `.mocharc.json` `node-option`) so tests can call `mock.module(...)` from `node:test`.
+
+## Coverage
+
+The Coveralls badge in `README.md` is a project USP and ships at **100% statements / 100% branches / 100% functions / 100% lines**. Hold that bar:
+
+- After any source change, run `npx c8 -n src -r text mocha` and confirm every file still reports 100% across the table. If a new branch isn't exercised, **add a test rather than ship the branch uncovered** — even for "shouldn't happen" defensive guards. See `test/src/fake-applicationinsights-test.js#constructor handles a TelemetryClient that lacks getStatsbeat` and `…dispatcher matcher returns false for an empty body…` for examples of how to drive unreachable-in-practice paths (shadow prototype methods, `fetch` an empty body directly).
+- Coverage regressions are caught by Coveralls' own PR check after the lcov upload — do **not** add a client-side `c8 --check-coverage` flag. The user has explicitly declined that approach.
+
+## Architecture
+
+The package ships two independent entry points that share the same `applicationinsights` peer dep but are otherwise decoupled:
+
+1. **`src/index.js`** — the pino transport. `compose(opts, Transformation?)` returns a stream built with `pino-abstract-transport` that wires:
+
+   `pino source → TelemetryTransformation (objectMode Transform) → destination Writable`
+
+   The destination is either (a) a `Writable` constructed around a `TelemetryClient` whose `track` callback is bound to the client (default: `trackTraceAndException`), or (b) the caller's own `opts.destination` stream (in which case `connectionString`/`track`/`config` are ignored — useful for tests and for piping into the FakeApplicationInsights client). `TelemetryTransformation.convertToTelemetry` parses the pino JSON line, maps pino numeric levels (30/40/50/60) to the SDK's severity enum (see `SeverityLevel` selection in **v2 / v3 dual support** below), strips `ignoreKeys` (default `hostname, pid, level, time, msg`) plus `tagOverrides` from `properties`, and wraps any `err` field in the local `Exception` class. Subclassing `TelemetryTransformation` and passing it as the second arg to `compose` is the supported customization path.
+
+2. **`src/fake-applicationinsights.js`** — `FakeApplicationInsights(connectionString)` is a test helper that uses `nock` to intercept POSTs to the AI ingestion endpoint and resolve a `CollectData` per matched telemetry type. `expectTelemetryType(type)` queues a single-envelope expectation; `expect(count)` queues a count-based collector. Internally a single persistent nock interceptor (the **dispatcher**) decodes each request body via `wire-format.js#extractTelemetryItems` and resolves all matching pending expectations from that one POST — required because the v3 SDK batches multiple telemetry items (e.g. trace + exception from a single `logger.error`) into one HTTP request, and the previous one-interceptor-per-`expect` design only matched the first item. A persistent **fallback** interceptor (registered alongside the dispatcher) replies `200` with `{ itemsReceived, itemsAccepted, errors: [] }` so trailing telemetry sent after all expectations are satisfied still gets a valid Breeze response — without it the SDK logs `Ingestion endpoint could not be reached`. The dispatcher + fallback are installed **lazily** on the first `expect…()` call (not in the constructor) so an idle FAI leaves no nock state behind, and `reset()` removes only the interceptors this instance registered (never `nock.cleanAll()`) so it can't trample on user-registered nock state. Each FAI tracks its own interceptor refs and uses `nock.removeInterceptor(ref)` for targeted cleanup. `nock` is an `optionalDependencies`, only loaded by this entry point.
+
+### v2 / v3 dual support
+
+The `applicationinsights` peer dep is `>=2 <4`. The library targets the v2 SDK _and_ the v3 classic-API "shim" (`applicationinsights@3` re-implemented over `@azure/monitor-opentelemetry-exporter`). Three places handle the differences:
+
+- **`src/connection-string.js`** — own parser for `InstrumentationKey=…;IngestionEndpoint=…` strings. Used by `FakeApplicationInsights` because v3 dropped `client.config.endpointUrl` from the public surface.
+- **`src/client-compat.js#applyClientConfig`** — disables statsbeat by calling `client.getStatsbeat().enable(false)` when a real statsbeat instance is returned (v2). v3's `getStatsbeat()` returns `null`, so the call is a no-op there; disabling statsbeat on v3 is a caller responsibility, set via the `APPLICATION_INSIGHTS_NO_STATSBEAT=disable` env var **before** any `applicationinsights` import (see `example/logger.js`'s `worker.env` recipe and `test/helpers/setup.js` for examples). The library deliberately never mutates `process.env`.
+- **`src/wire-format.js#extractTelemetryItems`** — `FakeApplicationInsights` accepts both wire encodings: v2's gzipped NDJSON (delivered as a hex string by nock) and v3's `application/json` array (parsed by nock into a JS value). Both formats hit the same `/v2.1/track` path, which is hardcoded as `INGESTION_PATHNAME`.
+- **`src/index.js#SeverityLevel`** — picks the version-appropriate enum at module load: `applicationinsights.Contracts?.SeverityLevel` (v2 numeric `Verbose=0…Critical=4`) → `applicationinsights.KnownSeverityLevel` (v3 string `'Verbose'…'Critical'`) → numeric fallback for hand-rolled mocks. v3's `trackTrace` treats numeric `0` as falsy and silently defaults to `Information`, so v3 has to be fed the string enum. The wire-level `severityLevel` field ends up numeric for v2 and string for v3 — tests use a per-version `wireSeverity` map (see `log-transport-test.js`).
+
+### Cross-version test layers
+
+CI installs both versions side-by-side: `applicationinsights` at v2.x and an aliased `applicationinsights-v3` (`npm:applicationinsights@^3`). The dual-version proof runs entirely under mocha (`--experimental-test-module-mocks` in `.mocharc.json` `node-option` enables `mock.module()` from `node:test`).
+
+The shared loop pattern in `test/src/module-mock-test.js`, `log-transport-test.js`, `compose-test.js`, and `fake-applicationinsights-test.js`:
+
+```js
+['applicationinsights', 'applicationinsights-v3'].forEach((version) => {
+  describe(`… ${version}`, () => {
+    before(async () => {
+      const ai = await import(version);
+      mock.module('applicationinsights', { namedExports: ai, defaultExport: ai });
+      // Cache-bust BOTH compose and FakeApplicationInsights so each iteration
+      // re-evaluates them under the active mock — without ?v=… the second
+      // iteration would still hold the first version's TelemetryClient ref.
+      const bust = `?v=${version}-${++cacheBust}`;
+      compose = (await import(`../../src/index.js${bust}`)).default;
+      const { FakeApplicationInsights } = await import(`../../src/fake-applicationinsights.js${bust}`);
+      // Auto-flush patch: v3's BatchLogRecordProcessor delays exports ~5s and
+      // explicitly drops maxBatchSize, so wrap each track method to flush after
+      // the original. v2 flushes are cheap when the channel is idle.
+      for (const m of ['trackTrace', 'trackException', 'trackEvent', 'trackMetric']) {
+        const original = TelemetryClient.prototype[m];
+        if (typeof original !== 'function') continue;
+        mock.method(TelemetryClient.prototype, m, function (...args) {
+          const r = original.apply(this, args);
+          if (typeof this.flush === 'function') this.flush();
+          return r;
+        });
+      }
+    });
+    after(() => mock.restoreAll());
+  });
+});
+```
+
+- v3-contract divergences kept inside the loop with `if (version === 'applicationinsights')` skips: `tagOverrides` (v3 ignores them — wire `tags` come from OTel resource attributes), `hasFullStack`/v2-shaped `parsedStack`, bare-instrumentation-key initialisation (v3 requires a full connection string).
+- `test/src/applicationinsights-v3-test.js` — extra end-to-end coverage of the real v3 SDK driven directly (no `mock.module`), with explicit `await v3Client.flush()`.
+
+Tests must remain network-free — nock + mocked clients only.
+
+## Build & types
+
+- The package is dual ESM/CJS. `package.json` `exports` maps `import` → `src/*.js` and `require` → `lib/*.cjs`. **Never hand-edit `lib/`** — it is generated by Rollup; edit `src/` and rebuild.
+- Types are JSDoc-driven: `src/*.js` carries `@type`/`@param` annotations, `tsconfig.json` runs with `allowJs` + `checkJs` + `strict`, and `dts-buddy` emits `types/index.d.ts` from those annotations during `npm run build`. Hand-written interfaces live in `types/interfaces.d.ts` and are referenced from JSDoc via `import('../types/interfaces.js')`.
+- The TS consumer test in `test/typescript/` exists specifically to verify the published `.d.ts` surface compiles against real consumer code; treat a failure there as a public API regression.
+
+## Conventions
+
+- ESLint `eslint.config.js` flat config; key rules: `no-console: 2`, `eqeqeq`, `prefer-const`, `require-await`, semi always. Prettier: 140 print width, single quotes, 2-space tabs.
+- `.gitignore` excludes `CLAUDE.md`, `.claude`, `.agents`, `.pi` — AI-assistant artifacts stay local.
+- `applicationinsights` peer dep is `>=2 <4`. v2 is the primary install; v3 is exercised through the aliased `applicationinsights-v3` devDep. The two surfaces diverge only in the spots called out under **v2 / v3 dual support** above — keep version-specific knowledge in `connection-string.js`, `client-compat.js`, and `wire-format.js` rather than scattering version checks through callers.
