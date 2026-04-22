@@ -16,7 +16,7 @@ let cacheBust = 0;
     before(async () => {
       const ai = await import(version);
       const TelemetryClient = ai.TelemetryClient;
-      mock.module('applicationinsights', { namedExports: ai, defaultExport: ai });
+      mock.module('applicationinsights', { cache: false, namedExports: ai });
 
       const bust = `?fai-v=${version}-${++cacheBust}`;
       compose = (await import(`../../src/index.js${bust}`)).default;

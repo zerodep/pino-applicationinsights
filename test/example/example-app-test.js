@@ -22,7 +22,8 @@ let cacheBust = 0;
 
     before(async () => {
       const ai = await import(version);
-      moduleMock = mock.module('applicationinsights', { namedExports: ai, defaultExport: ai });
+
+      moduleMock = mock.module('applicationinsights', { cache: false, namedExports: ai });
 
       const bust = `?ex-v=${version}-${++cacheBust}`;
       ({ app } = await import(`../../example/app.js${bust}`));
@@ -83,7 +84,7 @@ let cacheBust = 0;
     before(async () => {
       const ai = await import(version);
       const TelemetryClient = ai.TelemetryClient;
-      moduleMocks.push(mock.module('applicationinsights', { namedExports: ai, defaultExport: ai }));
+      moduleMocks.push(mock.module('applicationinsights', { cache: false, namedExports: ai }));
 
       for (const method of ['trackTrace', 'trackException', 'trackEvent', 'trackMetric']) {
         const original = TelemetryClient.prototype[method];

@@ -29,7 +29,7 @@ let cacheBust = 0;
     before(async () => {
       const ai = await import(version);
       TelemetryClient = ai.TelemetryClient;
-      mock.module('applicationinsights', { namedExports: ai, defaultExport: ai });
+      mock.module('applicationinsights', { cache: false, namedExports: ai });
       const compose = (await import(`../../src/index.js?v=${version}-${++cacheBust}`)).default;
 
       for (const method of ['trackTrace', 'trackException', 'trackEvent', 'trackMetric']) {

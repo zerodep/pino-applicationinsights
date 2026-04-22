@@ -93,7 +93,7 @@ describe('compose', () => {
     before(async () => {
       const ai = await import(version);
       TelemetryClient = ai.TelemetryClient;
-      mock.module('applicationinsights', { namedExports: ai, defaultExport: ai });
+      mock.module('applicationinsights', { cache: false, namedExports: ai });
       scopedCompose = (await import(`../../src/index.js?compose-v=${version}-${++cacheBust}`)).default;
 
       for (const method of ['trackTrace', 'trackException', 'trackEvent', 'trackMetric']) {

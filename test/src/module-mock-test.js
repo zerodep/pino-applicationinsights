@@ -19,7 +19,7 @@ function tick() {
     beforeEach(async () => {
       const ai = await import(version);
       TelemetryClient = ai.TelemetryClient;
-      moduleMock = mock.module('applicationinsights', { namedExports: ai, defaultExport: ai });
+      moduleMock = mock.module('applicationinsights', { cache: false, namedExports: ai });
       compose = (await import(`../../src/index.js?v=${version}-${++cacheBust}`)).default;
     });
 
