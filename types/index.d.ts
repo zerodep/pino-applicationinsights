@@ -1,6 +1,5 @@
 declare module '@0dep/pino-applicationinsights' {
-	import type { Transform } from 'node:stream';
-	import type { Writable } from 'stream';
+	import type { Transform, Writable } from 'node:stream';
 	import type { TelemetryClient, Contracts } from 'applicationinsights';
 	import * as applicationinsights from 'applicationinsights';
 	/**
@@ -15,6 +14,10 @@ declare module '@0dep/pino-applicationinsights' {
 	 * Tracks trace and occasional exception
 	 * */
 	export function trackTraceAndException(this:TelemetryClient, chunk: LogTelemetry): void;
+	/**
+	 * Run `fn` inside an OpenTelemetry context derived from `tracing`
+	 * */
+	export function applyTracing<T>(tracing: Tracing | undefined, fn: () => T): T;
 	/**
 	 * Telemetry exception
 	 * 
@@ -95,6 +98,17 @@ declare module '@0dep/pino-applicationinsights' {
 	destination: Writable;
   }
 
+  interface Tracing {
+	/** 32-hex-char W3C trace id */
+	traceId: string;
+	/** 16-hex-char W3C span id (becomes ai.operation.parentId) */
+	spanId: string;
+	/** OTel trace flags; defaults to 1 (sampled). v3 only. */
+	traceFlags?: number;
+	/** W3C tracestate header value. v3 only. */
+	traceState?: string;
+  }
+
   interface LogTelemetry extends Contracts.Telemetry {
 	severity: Contracts.SeverityLevel;
 	/** Pino log message */
@@ -102,6 +116,8 @@ declare module '@0dep/pino-applicationinsights' {
 	/** Telemetry properties */
 	properties: Record<string, any>;
 	exception?: Error;
+	/** Distributed tracing correlation ids forwarded by `trackTraceAndException` */
+	tracing?: Tracing;
 	[k: string]: any;
   }
 

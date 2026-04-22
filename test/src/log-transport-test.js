@@ -145,6 +145,69 @@ let cacheBust = 0;
       });
     }
 
+    describe('tracing', () => {
+      const traceId = '0af7651916cd43dd8448eb211c80319c';
+      const spanId = 'b7ad6b7169203331';
+
+      it('forwards tracing.traceId/spanId as operation id tags on the wire envelope', async () => {
+        const expectMessage = fakeAI.expectMessageData();
+
+        logger.info({ bar: 'baz', tracing: { traceId, spanId } }, 'foo');
+
+        const msg = await expectMessage;
+
+        expect(msg.body.tags).to.include({ [tagKeys.operationId]: traceId, [tagKeys.operationParentId]: spanId });
+      });
+
+      it('forwards tracing on both trace and exception envelopes', async () => {
+        const expectMessage = fakeAI.expectMessageData();
+        const expectException = fakeAI.expectExceptionData();
+
+        logger.error({ tracing: { traceId, spanId }, err: new Error('boom') }, 'boom');
+
+        const msg = await expectMessage;
+        const err = await expectException;
+
+        expect(msg.body.tags).to.include({ [tagKeys.operationId]: traceId, [tagKeys.operationParentId]: spanId });
+        expect(err.body.tags).to.include({ [tagKeys.operationId]: traceId, [tagKeys.operationParentId]: spanId });
+      });
+
+      it('does not leak tracing into envelope properties', async () => {
+        const expectMessage = fakeAI.expectMessageData();
+
+        logger.info({ bar: 'baz', tracing: { traceId, spanId } }, 'foo');
+
+        const msg = await expectMessage;
+
+        expect(msg.body.data.baseData.properties).to.deep.equal({ bar: 'baz' });
+      });
+
+      if (version === 'applicationinsights') {
+        it('user-supplied tagOverrides win over auto-derived tracing ids', async () => {
+          const expectMessage = fakeAI.expectMessageData();
+
+          logger.info({ bar: 'baz', tracing: { traceId, spanId }, tagOverrides: { [tagKeys.operationId]: 'user-override' } }, 'foo');
+
+          const msg = await expectMessage;
+
+          expect(msg.body.tags).to.include({
+            [tagKeys.operationId]: 'user-override',
+            [tagKeys.operationParentId]: spanId,
+          });
+        });
+      }
+
+      it('log without tracing leaves operation tags untouched', async () => {
+        const expectMessage = fakeAI.expectMessageData();
+
+        logger.info({ bar: 'baz' }, 'foo');
+
+        const msg = await expectMessage;
+
+        expect(msg.body.tags).to.not.have.property(tagKeys.operationId);
+      });
+    });
+
     if (version === 'applicationinsights') {
       it('logs info with tag overrides', async () => {
         const expectMessage = fakeAI.expectMessageData();

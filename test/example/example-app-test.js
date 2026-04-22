@@ -75,6 +75,8 @@ let cacheBust = 0;
     let inProcessApp;
     /** @type {import('../../src/fake-applicationinsights.js').FakeApplicationInsights} */
     let fakeAI;
+    /** @type {Record<string, string>} */
+    let tagKeys;
     /** @type {Array<ReturnType<typeof mock.module>>} */
     const moduleMocks = [];
 
@@ -96,16 +98,34 @@ let cacheBust = 0;
       const bust = `?ex-fai-v=${version}-${++cacheBust}`;
       const compose = (await import(`../../src/index.js${bust}`)).default;
       const { FakeApplicationInsights } = await import(`../../src/fake-applicationinsights.js${bust}`);
+      const { getContext } = await import(`../../example/middleware/context.js`);
 
       fakeAI = new FakeApplicationInsights(connectionString);
 
       const transport = compose({ connectionString, config: { maxBatchSize: 1, disableStatsbeat: true } });
-      const inProcessLogger = pino({ level: 'trace' }, transport);
+      tagKeys = new TelemetryClient(connectionString).context.keys;
+      const inProcessLogger = pino(
+        {
+          level: 'trace',
+          mixin(ctx) {
+            const rc = getContext();
+            if (!rc) return {};
+            return {
+              tracing: rc.tracing,
+              tagOverrides: {
+                [tagKeys.userId]: rc.user?.username,
+                ...ctx.tagOverrides,
+              },
+            };
+          },
+        },
+        transport,
+      );
 
       moduleMocks.push(
         mock.module(exampleLoggerUrl, {
           defaultExport: inProcessLogger,
-          namedExports: { tagKeys: new TelemetryClient(connectionString).context.keys },
+          namedExports: { tagKeys },
         }),
       );
 
@@ -137,6 +157,53 @@ let cacheBust = 0;
       const msg = await expectMessage;
       expect(msg.body.data.baseData.message).to.equal('logout');
       expect(msg.body.data.baseData.properties).to.include({ username: 'basicuser' });
+    });
+
+    describe('traceparent header correlation', () => {
+      const traceId = '0af7651916cd43dd8448eb211c80319c';
+      const upstreamSpanId = 'b7ad6b7169203331';
+      const traceparent = `00-${traceId}-${upstreamSpanId}-01`;
+
+      it('GET /admin with traceparent stamps ai.operation.id on the MessageData envelope', async () => {
+        const expectMessage = fakeAI.expectMessageData();
+
+        const res = await request(inProcessApp)
+          .get('/admin')
+          .set('authorization', basicAuthHeader('superuser', 'supersecret'))
+          .set('traceparent', traceparent);
+        expect(res.status).to.equal(200);
+
+        const msg = await expectMessage;
+        expect(msg.body.data.baseData.message).to.equal('admin request');
+        expect(msg.body.tags).to.have.property(tagKeys.operationId, traceId);
+        expect(msg.body.tags[tagKeys.operationParentId]).to.match(/^[0-9a-f]{16}$/);
+      });
+
+      it('POST /admin/logout with traceparent stamps correlation on both trace and wire envelopes', async () => {
+        const expectMessage = fakeAI.expectMessageData();
+
+        const res = await request(inProcessApp)
+          .post('/admin/logout')
+          .set('authorization', basicAuthHeader('basicuser', 'supersecret'))
+          .set('traceparent', traceparent);
+        expect(res.status).to.equal(401);
+
+        const msg = await expectMessage;
+        expect(msg.body.tags).to.have.property(tagKeys.operationId, traceId);
+        expect(msg.body.tags[tagKeys.operationParentId]).to.match(/^[0-9a-f]{16}$/);
+      });
+
+      it('GET /admin without traceparent still stamps a locally-generated operation id', async () => {
+        const expectMessage = fakeAI.expectMessageData();
+
+        const res = await request(inProcessApp).get('/admin').set('authorization', basicAuthHeader('superuser', 'supersecret'));
+        expect(res.status).to.equal(200);
+
+        const msg = await expectMessage;
+        expect(msg.body.tags[tagKeys.operationId]).to.match(/^[0-9a-f]{32}$/);
+        expect(msg.body.tags[tagKeys.operationId]).to.not.equal(traceId);
+        expect(msg.body.tags[tagKeys.operationParentId]).to.match(/^[0-9a-f]{16}$/);
+      });
     });
   });
 });

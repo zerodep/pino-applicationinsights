@@ -47,7 +47,7 @@ const logger = pino(
 );
 ```
 
-> **Note:** `tagOverrides` is honoured by `applicationinsights@2` only. The v3 classic-API shim ignores it — see [Application Insights v2 vs v3](#application-insights-v2-vs-v3).
+> **Note:** `tagOverrides` is honoured by `applicationinsights@2` only. The v3 classic-API shim ignores it — see [Application Insights v2 vs v3](#application-insights-v2-vs-v3). For cross-version distributed-trace correlation, pass `tracing` from the mixin instead — see [Distributed tracing](#distributed-tracing).
 
 or as multi transport:
 
@@ -59,6 +59,9 @@ const transport = pino.transport({
     {
       level: 'info',
       target: '@0dep/pino-applicationinsights',
+      worker: {
+        env: { ...process.env, APPLICATION_INSIGHTS_NO_STATSBEAT: 'disable' },
+      },
       options: {
         connectionString: process.env.APPLICATIONINSIGHTS_CONNECTION_STRING,
         config: {
@@ -79,6 +82,68 @@ const transport = pino.transport({
 });
 
 const logger = pino({ level: 'trace' }, transport);
+```
+
+## Distributed tracing
+
+Correlate pino log records to an OpenTelemetry trace by returning a `tracing` object from the pino `mixin`. The default `trackTraceAndException` forwards it as Application Insights `ai.operation.id` / `ai.operation.parentId` on both SDK versions:
+
+- **v2** — auto-merges `{ [client.context.keys.operationId]: traceId, [client.context.keys.operationParentId]: spanId }` into `tagOverrides`, which v2 copies to the wire envelope's `tags` map.
+- **v3** — wraps the `trackTrace` / `trackException` calls in an OpenTelemetry context with the given span context so the `@azure/monitor-opentelemetry-exporter` stamps `operation_Id` / `operation_ParentId` on the wire envelope. This requires `@opentelemetry/api` to be resolvable at runtime — declared as peer dependency and satisfied transitively by both `applicationinsights@2` and `applicationinsights@3`.
+
+```javascript
+import { pino } from 'pino';
+import { trace } from '@opentelemetry/api';
+import compose from '@0dep/pino-applicationinsights';
+
+const transport = compose({
+  connectionString: process.env.APPLICATIONINSIGHTS_CONNECTION_STRING,
+  config: { maxBatchSize: 1 },
+});
+
+const logger = pino(
+  {
+    level: 'trace',
+    mixin() {
+      const span = trace.getActiveSpan();
+      if (!span) return {};
+      const { traceId, spanId, traceFlags, traceState } = span.spanContext();
+      return { tracing: { traceId, spanId, traceFlags, traceState: traceState?.serialize() } };
+    },
+  },
+  transport,
+);
+```
+
+Fields on the `tracing` object:
+
+- `traceId` — 32-hex-char W3C trace id, forwarded as `ai.operation.id`.
+- `spanId` — 16-hex-char W3C span id, forwarded as `ai.operation.parentId`.
+- `traceFlags` (optional, defaults to `1` / sampled) — honoured on v3 only.
+- `traceState` (optional) — honoured on v3 only.
+
+Precedence: user-supplied `tagOverrides` entries always win over the auto-derived correlation ids — set `tagOverrides[tagKeys.operationId]` explicitly to override.
+
+### Worker-thread serialization
+
+When used via `pino.transport({ targets: [...] })` the transport runs in a worker thread, so the `mixin` output is serialised across the worker boundary. `tracing` must be plain JSON — a live OpenTelemetry `Span` object cannot cross, which is why the mixin extracts `traceId` / `spanId` from `span.spanContext()` rather than passing the span itself.
+
+### Custom `track` functions
+
+Callers that pass a custom `track` callback to `compose` should wrap their `trackTrace` / `trackException` calls with the exported `applyTracing(chunk.tracing, () => { ... })` helper to preserve correlation across both SDK versions.
+
+```javascript
+import compose, { applyTracing } from '@0dep/pino-applicationinsights';
+
+compose({
+  track(chunk) {
+    applyTracing(chunk.tracing, () => {
+      const { time, severity, msg: message, properties } = chunk;
+      this.trackTrace({ time, severity, message, properties });
+    });
+  },
+  connectionString,
+});
 ```
 
 ## API
@@ -119,6 +184,7 @@ Telemetry transformation stream. Transforms pino log record to [Telemetry:ish](#
 - `msg`: log message string
 - `properties`: telemetry properties object, filtered through ignore keys
 - `tagOverrides?`: object passed through from the pino log record (only honoured by v2's `trackTrace`/`trackException`; ignored by v3)
+- `tracing?`: distributed-trace correlation ids (`{ traceId, spanId, traceFlags?, traceState? }`); the default track function forwards these to both v2 and v3 — see [Distributed tracing](#distributed-tracing)
 - `exception?`: logged Error if any
 - `[k: string]`: any other properties that facilitate telemetry logging
 
@@ -243,6 +309,7 @@ This library targets `applicationinsights >= 2 < 4`. The v3 SDK is a thin "class
 
 - v2 honours `tagOverrides` on `trackTrace` / `trackException` / etc. and copies them into the request envelope's `tags` map.
 - The v3 shim **ignores `tagOverrides`** entirely. The wire `tags` map is built from OTel resource attributes (e.g. `service.name`, `service.instance.id`) and the `TelemetryClient` constructor's `useGlobalProviders` settings. To set role/instance/user info on v3, use the OTel resource API rather than `tagOverrides`.
+- For distributed-trace correlation (`ai.operation.id` / `ai.operation.parentId`) that works on both versions, use the `tracing` field in the pino mixin — see [Distributed tracing](#distributed-tracing).
 
 ### `client.config.*`
 

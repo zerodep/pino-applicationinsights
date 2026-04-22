@@ -1,6 +1,7 @@
 import { Writable, Transform, promises } from 'node:stream';
 import * as applicationinsights from 'applicationinsights';
 import abstractTransport from 'pino-abstract-transport';
+import { trace as otelTrace, context as otelContext } from '@opentelemetry/api';
 
 import { applyClientConfig } from './client-compat.js';
 
@@ -74,6 +75,7 @@ export class TelemetryTransformation extends Transform {
       severity,
       properties: this.extractProperties(line, this.ignoreKeys),
       ...(line.tagOverrides && { tagOverrides: line.tagOverrides }),
+      ...(line.tracing && { tracing: line.tracing }),
       ...(line.err && { exception: new Exception(line.err) }),
     };
   }
@@ -106,7 +108,7 @@ export class TelemetryTransformation extends Transform {
     /** @type {Record<string, any>} */
     const properties = {};
     for (const [k, v] of Object.entries(line)) {
-      if (ignoreKeys?.includes(k) || k === 'tagOverrides') continue;
+      if (ignoreKeys?.includes(k) || k === 'tagOverrides' || k === 'tracing') continue;
       properties[k] = v;
     }
     return properties;
@@ -161,7 +163,45 @@ export default function compose(opts, Transformation = TelemetryTransformation) 
  * @this {import('applicationinsights').TelemetryClient}
  */
 export function trackTraceAndException(chunk) {
-  const { time, severity, msg: message, properties, tagOverrides, exception } = chunk;
-  this.trackTrace({ time, severity, message, properties, tagOverrides });
-  if (exception) this.trackException({ time, severity, exception, tagOverrides });
+  const { time, severity, msg: message, properties, tagOverrides, tracing, exception } = chunk;
+  const effectiveTagOverrides = mergeTracingTagOverrides(this, tracing, tagOverrides);
+  applyTracing(tracing, () => {
+    this.trackTrace({ time, severity, message, properties, tagOverrides: effectiveTagOverrides });
+    if (exception) this.trackException({ time, severity, exception, tagOverrides: effectiveTagOverrides });
+  });
+}
+
+/**
+ * @param {import('applicationinsights').TelemetryClient} client
+ * @param {import('../types/interfaces.js').Tracing | undefined} tracing
+ * @param {Record<string, string> | undefined} tagOverrides
+ * @returns {Record<string, string> | undefined}
+ */
+function mergeTracingTagOverrides(client, tracing, tagOverrides) {
+  if (!tracing) return tagOverrides;
+  const keys = client?.context?.keys;
+  if (!keys) return tagOverrides;
+  return { [keys.operationId]: tracing.traceId, [keys.operationParentId]: tracing.spanId, ...tagOverrides };
+}
+
+/**
+ * Run `fn` inside an OpenTelemetry context derived from `tracing`
+ * @template T
+ * @param {import('../types/interfaces.js').Tracing | undefined} tracing
+ * @param {() => T} fn
+ * @returns {T}
+ */
+export function applyTracing(tracing, fn) {
+  if (!tracing) return fn();
+  /** @type {import('@opentelemetry/api').SpanContext} */
+  // @ts-ignore
+  const spanContext = {
+    traceId: tracing.traceId,
+    spanId: tracing.spanId,
+    traceFlags: tracing.traceFlags ?? 1,
+    isRemote: true,
+    ...(tracing.traceState && { traceState: tracing.traceState }),
+  };
+  const ctx = otelTrace.setSpanContext(otelContext.active(), spanContext);
+  return otelContext.with(ctx, fn);
 }

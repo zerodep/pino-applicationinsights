@@ -80,6 +80,7 @@
     "ts-node": "^10.9.1"
   },
   "peerDependencies": {
+    "@opentelemetry/api": ">=1.9.0 <2",
     "applicationinsights": ">=2 <4",
     "pino-abstract-transport": ">=2"
   },

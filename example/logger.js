@@ -1,4 +1,3 @@
-import { join } from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import pino from 'pino';
@@ -13,13 +12,11 @@ const destination = config.logging?.target === 'file' ? `./logs/${config.envName
 
 export const tagKeys = new TelemetryClient(config.applicationinsights.connectionstring).context.keys;
 
-const cwd = process.cwd();
-
 const transport = pino.transport({
   targets: [
     {
       level: config.applicationinsights.loglevel,
-      target: join(cwd, './src/index.js'),
+      target: '@0dep/pino-applicationinsights',
       worker: {
         env: { ...process.env, APPLICATION_INSIGHTS_NO_STATSBEAT: 'disable' },
       },
@@ -55,6 +52,7 @@ export default pino(
       const ctx = getContext();
       if (!ctx) return {};
       return {
+        tracing: ctx.tracing,
         tagOverrides: {
           [tagKeys.userId]: ctx.user?.username,
           [tagKeys.userAuthUserId]: ctx.user?.name,

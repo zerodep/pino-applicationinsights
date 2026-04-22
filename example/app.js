@@ -1,4 +1,4 @@
-import { fileURLToPath } from 'url';
+import { fileURLToPath } from 'node:url';
 import express from 'express';
 import logger from './logger.js';
 import { basicAuth } from './middleware/auth.js';

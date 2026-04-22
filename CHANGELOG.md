@@ -4,13 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-## v2.0.0 - 2026-04-18
+## v2.0.0 - 2026-04-22
 
 Application Insights `v3` support added alongside continued `v2` support. Peer dep range widened to `applicationinsights >=2 <4`. Most v3 differences are masked by the library, but a handful of consumer-visible behaviours change with the SDK version — see [README › Application Insights v2 vs v3](./README.md#application-insights-v2-vs-v3) for the full matrix.
 
+### Features
+
+- New `tracing` field on pino log records (`{ traceId, spanId, traceFlags?, traceState? }`) forwarded by the default `trackTraceAndException` — auto-merged into `tagOverrides` as `ai.operation.id` / `ai.operation.parentId` on v2, and applied via the active OpenTelemetry context on v3 so the Azure Monitor log exporter stamps `operation_Id` / `operation_ParentId` on the wire envelope. User-supplied `tagOverrides` keys still win. See [README › Distributed tracing](./README.md#distributed-tracing).
+- Exported `applyTracing(tracing, fn)` helper for consumers that pass a custom `track` callback and want the same cross-version correlation.
+
 ### Potentially breaking
 
+- drop node v18 support
 - **`peerDependencies.applicationinsights`** widened from `2.x` to `>=2 <4`. v2 still works as before; v3 is the classic-API shim over `@azure/monitor-opentelemetry-exporter`.
+- `@opentelemetry/api` added to `peerDependencies` as an optional peer (`>=1.9.0 <2`). Satisfied transitively by both `applicationinsights@2` and `applicationinsights@3`.
 - **`TelemetryTransformation#convertLevel` return type is now version-dependent.** v2 returns numeric `Contracts.SeverityLevel` (0–4, unchanged); v3 returns string `KnownSeverityLevel` ('Verbose'…'Critical'). v3's `trackTrace` treats numeric `0` as falsy, so the library has to feed it the string enum — there is no single value that satisfies both wire formats. The chunk's `severity` field on the [Telemetrish object](./README.md#telemetrish-object) reflects whichever the loaded SDK exposes. Custom `track` functions that compare `chunk.severity` against a hardcoded numeric constant must be updated to use the loaded SDK's enum.
 - **Wire-level `severityLevel` on captured AI envelopes is numeric under v2 and string under v3.** Tests/assertions that hardcode a numeric `severityLevel` need a per-version map (see `test/src/log-transport-test.js`'s `wireSeverity`).
 - **`tagOverrides` is silently ignored on v3.** The v3 shim populates the wire envelope `tags` map from OpenTelemetry resource attributes only. v2 behaviour is unchanged. Migrate v3 callers to OTel resource attributes (`service.name`, `service.instance.id`, etc.) for role/instance/user metadata.
