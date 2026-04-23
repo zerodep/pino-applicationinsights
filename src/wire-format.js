@@ -1,4 +1,4 @@
-import zlib from 'node:zlib';
+import { gunzipSync } from 'node:zlib';
 
 /**
  * Decode an Application Insights ingestion request body into TelemetryItem objects.
@@ -36,7 +36,7 @@ function tryGunzipHex(hex) {
   if (!/^[0-9a-fA-F]+$/.test(hex) || hex.length < 4) return undefined;
   if (hex.slice(0, 4).toLowerCase() !== '1f8b') return undefined;
   try {
-    return zlib.gunzipSync(Buffer.from(hex, 'hex')).toString();
+    return gunzipSync(Buffer.from(hex, 'hex')).toString();
   } catch {
     return undefined;
   }
