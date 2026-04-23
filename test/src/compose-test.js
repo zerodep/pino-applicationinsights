@@ -166,7 +166,8 @@ describe('compose', () => {
         transport.destroy();
       });
 
-      it('config.disableStatsbeat=true does not throw on either version', () => {
+      it('config.disableStatsbeat=true does not throw on either version', async () => {
+        const expectMessage = fakeAI.expectMessageData();
         const transport = scopedCompose({
           track(chunk) {
             const { time, severity, msg: message, properties } = chunk;
@@ -178,6 +179,7 @@ describe('compose', () => {
         const logger = pino(transport);
 
         expect(() => logger.info({ bar: 'baz' }, 'foo')).to.not.throw();
+        await expectMessage;
         transport.destroy();
       });
 
