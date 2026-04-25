@@ -26,7 +26,11 @@ let cacheBust = 0;
     let tagKeys;
     let TelemetryClient;
 
+    const frozen = new Date('2099-01-01T00:00:00.000Z');
+
     before(async () => {
+      ck.freeze(frozen);
+
       const ai = await import(version);
       TelemetryClient = ai.TelemetryClient;
       mock.module('applicationinsights', { cache: false, namedExports: ai });
@@ -59,8 +63,8 @@ let cacheBust = 0;
       transport.destroy();
       fakeAI.reset();
       mock.restoreAll();
+      ck.reset();
     });
-    afterEach(ck.reset);
 
     function mixin(context) {
       return { tagOverrides: { [tagKeys.userId]: 'uzer', ...context.tagOverrides } };
@@ -130,20 +134,15 @@ let cacheBust = 0;
       expect(err.body.data.baseData.exceptions[0]).to.include({ typeName: 'Error', message: 'bar' });
     });
 
-    if (version === 'applicationinsights') {
-      it('logs time extracted from log record', async () => {
-        const frozen = new Date('2026-04-18T00:00:00.000Z');
-        ck.freeze(frozen);
+    it('logs time extracted from log record', async () => {
+      const expectMessage = fakeAI.expectMessageData();
 
-        const expectMessage = fakeAI.expectMessageData();
+      logger.info('foo');
 
-        logger.info('foo');
+      const msg = await expectMessage;
 
-        const msg = await expectMessage;
-
-        expect(msg.body.time).to.equal(frozen.toISOString());
-      });
-    }
+      expect(msg.body.time).to.equal(frozen.toISOString());
+    });
 
     describe('tracing', () => {
       const traceId = '0af7651916cd43dd8448eb211c80319c';

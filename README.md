@@ -146,6 +146,24 @@ compose({
 });
 ```
 
+## Graceful shutdown
+
+When the pino source stream closes — either through `transport.end()` / `transport.destroy()` or via `pino.final` / `logger.flush()` chained off a signal handler — `compose` flushes and tears down the underlying `TelemetryClient` so any records buffered by the SDK reach Application Insights before the process exits. On v3 this calls `client.shutdown()` (which forces the OTel `BatchLogRecordProcessor` to flush and shuts down the global LoggerProvider). On v2 it calls `client.flush()` (which drains the channel buffer). Without this hook, records sitting in the v3 batch processor or v2 channel buffer at process exit are silently dropped.
+
+To wire this to OS signals, attach a handler that flushes pino and exits. `pino@10` removed the `pino.final` helper, so call `logger.flush(cb)` directly — see [`example/logger.js`](./example/logger.js):
+
+```javascript
+function finalize() {
+  logger.flush((err) => process.exit(err ? 1 : 0));
+}
+process.once('SIGTERM', finalize);
+process.once('SIGINT', finalize);
+```
+
+On `pino@9` and earlier, the equivalent is `pino.final(logger, (err) => process.exit(err ? 1 : 0))`.
+
+`SIGKILL` cannot be intercepted by any process, so records in flight at that moment are unrecoverable — that's a kernel-level constraint, not a transport issue.
+
 ## API
 
 ### `compose(opts[, TelemetryTransformation]) => Stream`

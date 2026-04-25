@@ -47,7 +47,7 @@ export class TelemetryTransformation extends Transform {
    */
   constructor(options, config) {
     super({ ...options, objectMode: true });
-    this.ignoreKeys = config?.ignoreKeys || this.ignoreKeys;
+    this.ignoreKeys = config?.ignoreKeys ?? this.ignoreKeys;
   }
   /**
    *
@@ -129,11 +129,13 @@ export default function compose(opts, Transformation = TelemetryTransformation) 
 
   /** @type {Writable | Transform} */
   let destination;
+  /** @type {import('applicationinsights').TelemetryClient | undefined} */
+  let client;
   if (opts.destination) {
     if (typeof opts.destination.write !== 'function') throw new TypeError('destination must be a writable stream');
     destination = opts.destination;
   } else {
-    const client = new TelemetryClient(opts.connectionString);
+    client = new TelemetryClient(opts.connectionString);
 
     applyClientConfig(client, opts.config);
 
@@ -150,9 +152,23 @@ export default function compose(opts, Transformation = TelemetryTransformation) 
 
   const transformToTelemetry = new Transformation({ objectMode: true, autoDestroy: true }, { ignoreKeys: opts.ignoreKeys });
 
-  return abstractTransport((source) => {
-    return promises.pipeline(source, transformToTelemetry, destination);
-  });
+  return abstractTransport(
+    (source) => {
+      return promises.pipeline(source, transformToTelemetry, destination);
+    },
+    {
+      close(err, cb) {
+        const c = /** @type {any} */ (client);
+        if (typeof c?.shutdown === 'function') {
+          Promise.resolve(c.shutdown()).finally(() => cb(err));
+        } else if (typeof c?.flush === 'function') {
+          c.flush({ callback: () => cb(err) });
+        } else {
+          cb(err);
+        }
+      },
+    },
+  );
 }
 
 /**

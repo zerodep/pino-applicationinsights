@@ -17,20 +17,27 @@ let cacheBust = 0;
   describe(`example app with ${version}`, () => {
     /** @type {import('express').Express} */
     let app;
-    /** @type {ReturnType<typeof mock.module> | undefined} */
-    let moduleMock;
+    /** @type {Array<ReturnType<typeof mock.module>>} */
+    const moduleMocks = [];
 
     before(async () => {
       const ai = await import(version);
 
-      moduleMock = mock.module('applicationinsights', { cache: false, namedExports: ai });
+      moduleMocks.push(mock.module('applicationinsights', { cache: false, namedExports: ai }));
+
+      moduleMocks.push(
+        mock.module(exampleLoggerUrl, {
+          defaultExport: pino({ enabled: false }),
+          namedExports: { tagKeys: new ai.TelemetryClient(connectionString).context.keys },
+        }),
+      );
 
       const bust = `?ex-v=${version}-${++cacheBust}`;
       ({ app } = await import(`../../example/app.js${bust}`));
     });
 
     after(() => {
-      moduleMock?.restore();
+      for (const m of moduleMocks.splice(0)) m.restore();
     });
 
     it('GET / returns "Hello"', async () => {
@@ -78,6 +85,8 @@ let cacheBust = 0;
     let fakeAI;
     /** @type {Record<string, string>} */
     let tagKeys;
+    /** @type {{ destroy(): void }} */
+    let inProcessTransport;
     /** @type {Array<ReturnType<typeof mock.module>>} */
     const moduleMocks = [];
 
@@ -103,7 +112,7 @@ let cacheBust = 0;
 
       fakeAI = new FakeApplicationInsights(connectionString);
 
-      const transport = compose({ connectionString, config: { maxBatchSize: 1, disableStatsbeat: true } });
+      inProcessTransport = compose({ connectionString, config: { maxBatchSize: 1, disableStatsbeat: true } });
       tagKeys = new TelemetryClient(connectionString).context.keys;
       const inProcessLogger = pino(
         {
@@ -120,7 +129,7 @@ let cacheBust = 0;
             };
           },
         },
-        transport,
+        inProcessTransport,
       );
 
       moduleMocks.push(
@@ -134,6 +143,7 @@ let cacheBust = 0;
     });
 
     after(() => {
+      inProcessTransport.destroy();
       fakeAI.reset();
       for (const m of moduleMocks.splice(0)) m.restore();
     });

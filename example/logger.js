@@ -42,7 +42,7 @@ const transport = pino.transport({
   ],
 });
 
-export default pino(
+const logger = pino(
   {
     level: config.loglevel,
     /**
@@ -65,3 +65,12 @@ export default pino(
   },
   transport,
 );
+
+function finalize() {
+  // eslint-disable-next-line no-process-exit
+  logger.flush((err) => process.exit(err ? 1 : 0));
+}
+process.once('SIGTERM', finalize);
+process.once('SIGINT', finalize);
+
+export default logger;

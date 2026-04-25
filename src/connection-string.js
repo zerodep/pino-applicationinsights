@@ -27,6 +27,6 @@ export function parseConnectionString(input) {
     parts[key] = value;
   }
 
-  const ingestionEndpoint = (parts.ingestionendpoint || DEFAULT_INGESTION_ENDPOINT).replace(/\/+$/, '');
+  const ingestionEndpoint = (parts.ingestionendpoint ?? DEFAULT_INGESTION_ENDPOINT).replace(/\/+$/, '');
   return { instrumentationKey: parts.instrumentationkey, ingestionEndpoint };
 }

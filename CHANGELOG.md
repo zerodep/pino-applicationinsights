@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-## v2.0.0 - 2026-04-23
+## v2.0.0 - 2026-04-25
 
 Add `applicationinsights@3` support alongside `v2`. See [README › Application Insights v2 vs v3](./README.md#application-insights-v2-vs-v3) for the full behavioural matrix.
 
@@ -21,12 +21,12 @@ Add `applicationinsights@3` support alongside `v2`. See [README › Application 
 - v3 requires a full `InstrumentationKey=…;IngestionEndpoint=…` connection string; bare instrumentation keys no longer work.
 - `config.maxBatchSize` and `config.disableStatsbeat` are no-ops on v3. v3 batches via OTel's `BatchLogRecordProcessor`; call `await client.flush()` for eager export. Disable statsbeat by setting `APPLICATION_INSIGHTS_NO_STATSBEAT=disable` before any `applicationinsights` import (see `example/logger.js`).
 - Exception envelopes differ on v3 (no `hasFullStack`, different `parsedStack` shape). Gate v2-only fields behind a version check.
-- Wire-envelope `time` on v3 comes from `process.hrtime`, so clock-mocking (e.g. `chronokinesis.freeze`) only works on v2.
 - `FakeApplicationInsights.expect(count)` no longer registers a single `.times(count)` interceptor; a persistent fallback replies `200` to trailing requests. Drop any external `nock(...).post(...).reply(...)` overflow interceptors.
 - `FakeApplicationInsights.reset()` now removes only its own interceptors (not `nock.cleanAll()`); the dispatcher installs lazily. Call `nock.cleanAll()` yourself if you relied on the old behaviour.
 
 ### Fixes
 
+- flushes log when pino log stream closes
 - v3 batches multiple telemetry items per POST — replaced the one-interceptor-per-`expect` design with a persistent dispatcher that resolves all matching pending expectations from each request body.
 - Parse the ingestion endpoint from the connection string (`src/connection-string.js`) instead of reading `client.config.endpointUrl` (gone in v3).
 - Decode both v2 (gzipped NDJSON) and v3 (JSON array) wire formats transparently in `src/wire-format.js`.
