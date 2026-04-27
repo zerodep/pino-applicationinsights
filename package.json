@@ -31,7 +31,8 @@
     "cov:html": "c8 -n src -r html -r text mocha",
     "test:lcov": "c8 -n src -r lcov -r text mocha",
     "test:md": "texample -c .mocharc.json -i -r ./scripts/texample-setup.js ./README.md",
-    "build": "rollup -c && dts-buddy"
+    "toc": "node ./scripts/insert-toc.js",
+    "build": "rollup -c && dts-buddy && npm run toc"
   },
   "keywords": [
     "pino",

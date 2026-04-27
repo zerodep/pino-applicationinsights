@@ -107,6 +107,13 @@ export default [
     },
   },
   {
+    files: ['scripts/**/*.js'],
+    rules: {
+      'no-console': 0,
+      'no-process-exit': 0,
+    },
+  },
+  {
     ignores: ['coverage/**/*', 'node_modules/**/*', 'tmp/*', 'lib/*'],
   },
 ];

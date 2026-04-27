@@ -10,6 +10,33 @@ Have a look in [Example app](/example) to get inspiration of how to use this lib
 
 Ships with [fake applicationinsights](#class-fakeapplicationinsightssetupstring) helper test class.
 
+<!-- toc -->
+
+- [Usage](#usage)
+- [Distributed tracing](#distributed-tracing)
+  - [Worker-thread serialization](#worker-thread-serialization)
+  - [Custom `track` functions](#custom-track-functions)
+- [Graceful shutdown](#graceful-shutdown)
+- [API](#api)
+  - [`compose(opts[, TelemetryTransformation]) => Stream`](#composeopts-telemetrytransformation-stream)
+  - [`class TelemetryTransformation(options[, config])`](#class-telemetrytransformationoptions-config)
+    - [Telemetrish object](#telemetrish-object)
+  - [`class FakeApplicationInsights(setupString)`](#class-fakeapplicationinsightssetupstring)
+    - [Caveats](#caveats)
+    - [Example](#example)
+    - [`FakeCollectData`](#fakecollectdata)
+- [Application Insights v2 vs v3](#application-insights-v2-vs-v3)
+  - [Severity values](#severity-values)
+  - [`tagOverrides`](#tagoverrides)
+  - [`client.config.\*`](#clientconfig)
+  - [Disabling statsbeat](#disabling-statsbeat)
+  - [Connection string vs bare instrumentation key](#connection-string-vs-bare-instrumentation-key)
+  - [Endpoint URL](#endpoint-url)
+  - [`Contracts.ContextTagKeys`](#contractscontexttagkeys)
+  - [Exception envelopes](#exception-envelopes)
+
+<!-- /toc -->
+
 ## Usage
 
 ```javascript
