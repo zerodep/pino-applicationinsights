@@ -142,7 +142,7 @@ compose({
       this.trackTrace({ time, severity, message, properties });
     });
   },
-  connectionString,
+  connectionString: process.env.APPLICATIONINSIGHTS_CONNECTION_STRING,
 });
 ```
 
@@ -233,7 +233,6 @@ Intercept calls to application insights. Works against both v2 and v3 wire forma
 
 ```javascript
 import { randomUUID } from 'node:crypto';
-import 'mocha';
 import { pino } from 'pino';
 
 import compose from '@0dep/pino-applicationinsights';
@@ -343,14 +342,14 @@ This library targets `applicationinsights >= 2 < 4`. The v3 SDK is a thin "class
 - On v3, `client.getStatsbeat()` returns `null` and `config.disableStatsbeat: true` is a no-op. The library does **not** mutate the `APPLICATION_INSIGHTS_NO_STATSBEAT` env var on your behalf — set it yourself before any `applicationinsights` import. Two recipes:
   1. **Main process** — set the env var before importing the SDK:
 
-     ```javascript
+     ```js
      process.env.APPLICATION_INSIGHTS_NO_STATSBEAT = 'disable';
      const compose = (await import('@0dep/pino-applicationinsights')).default;
      ```
 
   2. **`pino.transport` worker** — pass it via the target's `worker.env` so the worker thread inherits the disabled flag without polluting the main process env. See [`example/logger.js`](./example/logger.js):
 
-     ```javascript
+     ```js
      pino.transport({
        targets: [
          {
