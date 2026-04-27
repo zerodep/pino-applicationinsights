@@ -5,7 +5,9 @@ import commonjs from '@rollup/plugin-commonjs';
 const nodeRequire = createRequire(fileURLToPath(import.meta.url));
 const { module, main, peerDependencies, optionalDependencies } = nodeRequire('./package.json');
 
-const external = new Set(['node:stream', 'node:zlib'].concat(Object.keys(peerDependencies)).concat(Object.keys(optionalDependencies)));
+const external = new Set(
+  ['node:stream', 'node:zlib', 'node:module'].concat(Object.keys(peerDependencies)).concat(Object.keys(optionalDependencies)),
+);
 
 export default [
   {

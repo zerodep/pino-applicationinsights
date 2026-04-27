@@ -1,28 +1,31 @@
-import { join } from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
-import { pino } from 'pino';
+import pino from 'pino';
 import config from 'exp-config';
-import { Contracts } from 'applicationinsights';
+import { TelemetryClient } from 'applicationinsights';
 import { getContext } from './middleware/context.js';
 
 const nodeRequire = createRequire(fileURLToPath(import.meta.url));
 const { version } = nodeRequire('../package.json');
 
-export const tagKeys = new Contracts.ContextTagKeys();
+const destination = config.logging?.target === 'file' ? `./logs/${config.envName}.log` : 1;
 
-const cwd = process.cwd();
+export const tagKeys = new TelemetryClient(config.applicationinsights.connectionstring).context.keys;
 
 const transport = pino.transport({
   targets: [
     {
       level: config.applicationinsights.loglevel,
-      target: join(cwd, './src/index.js'),
+      target: '@0dep/pino-applicationinsights',
+      worker: {
+        env: { ...process.env, APPLICATION_INSIGHTS_NO_STATSBEAT: 'disable' },
+      },
       options: {
         connectionString: config.applicationinsights.connectionstring,
         config: {
           disableStatsbeat: true,
           maxBatchSize: 1,
+          ...config.applicationinsights.config,
         },
       },
     },
@@ -30,6 +33,7 @@ const transport = pino.transport({
       level: config.loglevel,
       target: 'pino-pretty',
       options: {
+        destination,
         colorize: true,
         ignore: 'pid,hostname',
         translateTime: "yyyy-mm-dd'T'HH:MM:ss.l",
@@ -38,13 +42,17 @@ const transport = pino.transport({
   ],
 });
 
-export default pino(
+const logger = pino(
   {
     level: config.loglevel,
+    /**
+     * @param {any} context
+     */
     mixin(context) {
       const ctx = getContext();
       if (!ctx) return {};
       return {
+        tracing: ctx.tracing,
         tagOverrides: {
           [tagKeys.userId]: ctx.user?.username,
           [tagKeys.userAuthUserId]: ctx.user?.name,
@@ -57,3 +65,12 @@ export default pino(
   },
   transport,
 );
+
+function finalize() {
+  // eslint-disable-next-line no-process-exit
+  logger.flush((err) => process.exit(err ? 1 : 0));
+}
+process.once('SIGTERM', finalize);
+process.once('SIGINT', finalize);
+
+export default logger;

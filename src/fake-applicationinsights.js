@@ -1,6 +1,8 @@
-import zlib from 'node:zlib';
 import { TelemetryClient } from 'applicationinsights';
 import nock from 'nock';
+
+import { parseConnectionString, INGESTION_PATHNAME } from './connection-string.js';
+import { extractTelemetryItems } from './wire-format.js';
 
 class CollectData {
   /**
@@ -18,25 +20,79 @@ class CollectData {
 }
 
 /**
- * Intercept all calls to application insights
+ * Intercept calls to application insights.
  */
 export class FakeApplicationInsights {
   /**
-   * @param {string} [setupString] - Fake application insights connection string
+   * @param {string} setupString - Fake application insights connection string
    */
   constructor(setupString) {
-    const client = (this.client = new TelemetryClient(setupString));
-    client.getStatsbeat().enable(false);
+    const { ingestionEndpoint } = parseConnectionString(setupString);
 
-    const endpointURL = (this._endpointURL = new URL(client.config.endpointUrl));
-
+    const endpointURL = (this._endpointURL = new URL(INGESTION_PATHNAME, ingestionEndpoint));
     this._endpointPathname = endpointURL.pathname;
-    this._scope = nock(endpointURL.origin, {
-      reqheaders: {
-        'content-type': 'application/x-json-stream',
-        'content-encoding': 'gzip',
+
+    this.client = new TelemetryClient(setupString);
+
+    this._scope = nock(endpointURL.origin);
+    /** @type {Array<{ kind: 'type', type: string, resolve: (data: CollectData) => void } | { kind: 'count', count: number, collected: CollectData[], resolve: (data: CollectData[]) => void }>} */
+    this._pending = [];
+    /** @type {import('nock').Interceptor[]} */
+    this._interceptors = [];
+  }
+  _installDispatcher() {
+    if (this._interceptors.length > 0) return;
+    const pending = this._pending;
+    const dispatcher = this._scope.persist().post(
+      this._endpointPathname,
+      /** @this {{ method: string, path: string, headers: Record<string, any> }} */ function dispatch(body) {
+        if (pending.length === 0) return false;
+
+        const items = extractTelemetryItems(body).filter((item) => item && item.data);
+        if (items.length === 0) return false;
+
+        const req = this;
+        const collected = items.map((item) => new CollectData(req.method, req.path, req.headers, item));
+
+        let consumed = false;
+
+        const claimed = new Set();
+        for (let itemIdx = 0; itemIdx < collected.length; itemIdx++) {
+          for (let i = 0; i < pending.length; i++) {
+            const p = pending[i];
+            if (p.kind !== 'type' || p.type !== items[itemIdx].data.baseType || claimed.has(itemIdx)) continue;
+            pending.splice(i, 1);
+            claimed.add(itemIdx);
+            p.resolve(collected[itemIdx]);
+            consumed = true;
+            break;
+          }
+        }
+
+        for (let i = pending.length - 1; i >= 0; i--) {
+          const p = pending[i];
+          if (p.kind !== 'count') continue;
+          for (const c of collected) p.collected.push(c);
+          consumed = true;
+          if (p.collected.length >= p.count) {
+            pending.splice(i, 1);
+            p.resolve(p.collected);
+          }
+        }
+
+        return consumed;
       },
+    );
+    dispatcher.reply(() => [200, { itemsReceived: 1, itemsAccepted: 1, errors: [] }]);
+    this._interceptors.push(dispatcher);
+
+    const fallback = this._scope.persist().post(this._endpointPathname, () => true);
+    fallback.reply((_uri, body) => {
+      const items = extractTelemetryItems(body).filter((item) => item && item.data);
+      const total = items.length || 1;
+      return [200, { itemsReceived: total, itemsAccepted: total, errors: [] }];
     });
+    this._interceptors.push(fallback);
   }
   /**
    * Expect tracked message
@@ -65,19 +121,9 @@ export class FakeApplicationInsights {
    * @returns {Promise<import('../types/interfaces.js').FakeCollectData>}
    */
   expectTelemetryType(telemetryType) {
+    this._installDispatcher();
     return new Promise((resolve) => {
-      /** @type {any} */
-      let tracked;
-      this._scope
-        .post(this._endpointPathname, (body) => {
-          const deflated = this.parseLines(this.deflateSync(body));
-          tracked = deflated.find((l) => l.data.baseType === telemetryType);
-          return !!tracked;
-        })
-        .reply(function reply(uri) {
-          resolve(new CollectData(this.req.method, uri, this.req.headers, tracked));
-          return [200];
-        });
+      this._pending.push({ kind: 'type', type: telemetryType, resolve });
     });
   }
   /**
@@ -86,55 +132,18 @@ export class FakeApplicationInsights {
    * @returns {Promise<import('../types/interfaces.js').FakeCollectData[]>}
    */
   expect(count = 1) {
+    this._installDispatcher();
     return new Promise((resolve) => {
-      /** @type {any[]} */
-      let collected = [];
-      let deflated;
-
-      this._scope
-        .post(this._endpointPathname, (body) => {
-          const match = collected.length <= count;
-          if (!match) return false;
-
-          deflated = this.deflateSync(body);
-          collected = collected.concat(this.parseLines(deflated));
-
-          return true;
-        })
-        .times(count)
-        .reply(function reply(uri) {
-          if (collected.length >= count) {
-            resolve(collected.map((l) => new CollectData(this.req.method, uri, this.req.headers, l)));
-          }
-          return [200];
-        });
+      this._pending.push({ kind: 'count', count, collected: [], resolve });
     });
   }
   /**
-   * Parse multiline JSON
-   * @param {string} deflatedBody
-   * @returns {any[]}
-   */
-  parseLines(deflatedBody) {
-    const lines = [];
-    for (const line of deflatedBody.split(/\r?\n/)) lines.push(JSON.parse(line));
-    return lines;
-  }
-  /**
-   * Deflate
-   * @param {any} body gzipped body
-   * @returns {string}
-   */
-  deflateSync(body) {
-    return zlib.gunzipSync(Buffer.from(body, 'hex')).toString();
-  }
-  /**
-   * Reset expected faked Application Insights calls
-   *
-   * Calls nock clean all
+   * Reset expected faked Application Insights calls.
    * @returns {void}
    */
   reset() {
-    nock.cleanAll();
+    this._pending.length = 0;
+    for (const interceptor of this._interceptors) nock.removeInterceptor(interceptor);
+    this._interceptors.length = 0;
   }
 }

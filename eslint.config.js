@@ -71,7 +71,7 @@ export default [
     rules,
   },
   {
-    files: ['**/*.js'],
+    files: ['**/*.js', '**/*.mjs'],
     languageOptions: {
       globals: {
         ...globals.node,
@@ -80,7 +80,7 @@ export default [
     },
   },
   {
-    files: ['test/**/*.js'],
+    files: ['test/**/*.js', 'test/**/*.mjs'],
     languageOptions: {
       globals: {
         ...globals.node,
@@ -104,6 +104,13 @@ export default [
         ...globals.mocha,
         expect: 'readonly',
       },
+    },
+  },
+  {
+    files: ['scripts/**/*.js'],
+    rules: {
+      'no-console': 0,
+      'no-process-exit': 0,
     },
   },
   {

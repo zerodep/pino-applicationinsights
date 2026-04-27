@@ -1,6 +1,6 @@
 /// <reference types="node" />
 
-import { Writable } from 'stream';
+import { Writable } from 'node:stream';
 import { TelemetryClient, Contracts } from 'applicationinsights';
 
 export type trackFunction = (this: TelemetryClient, chunk: LogTelemetry) => void;
@@ -43,6 +43,17 @@ export interface DestinationComposeConfig extends ComposeConfig {
   destination: Writable;
 }
 
+export interface Tracing {
+  /** 32-hex-char W3C trace id */
+  traceId: string;
+  /** 16-hex-char W3C span id (becomes ai.operation.parentId) */
+  spanId: string;
+  /** OTel trace flags; defaults to 1 (sampled). v3 only. */
+  traceFlags?: number;
+  /** W3C tracestate header value. v3 only. */
+  traceState?: string;
+}
+
 export interface LogTelemetry extends Contracts.Telemetry {
   severity: Contracts.SeverityLevel;
   /** Pino log message */
@@ -50,6 +61,8 @@ export interface LogTelemetry extends Contracts.Telemetry {
   /** Telemetry properties */
   properties: Record<string, any>;
   exception?: Error;
+  /** Distributed tracing correlation ids forwarded by `trackTraceAndException` */
+  tracing?: Tracing;
   [k: string]: any;
 }
 

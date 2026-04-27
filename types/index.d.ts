@@ -1,7 +1,7 @@
 declare module '@0dep/pino-applicationinsights' {
-	import type { TelemetryClient, Contracts as Contracts_1 } from 'applicationinsights';
-	import type { Transform } from 'node:stream';
-	import type { Writable } from 'stream';
+	import type { Transform, Writable } from 'node:stream';
+	import type { TelemetryClient, Contracts } from 'applicationinsights';
+	import * as applicationinsights from 'applicationinsights';
 	/**
 	 * Compose Application Insights pino transport
 	 * @param opts - transport options
@@ -13,7 +13,11 @@ declare module '@0dep/pino-applicationinsights' {
 	 *
 	 * Tracks trace and occasional exception
 	 * */
-	export function trackTraceAndException(this: TelemetryClient, chunk: LogTelemetry): void;
+	export function trackTraceAndException(this:TelemetryClient, chunk: LogTelemetry): void;
+	/**
+	 * Run `fn` inside an OpenTelemetry context derived from `tracing`
+	 * */
+	export function applyTracing<T>(tracing: Tracing | undefined, fn: () => T): T;
 	/**
 	 * Telemetry exception
 	 * 
@@ -48,9 +52,9 @@ declare module '@0dep/pino-applicationinsights' {
 		 * */
 		convertToTelemetry(chunk: string | object): LogTelemetry;
 		/**
-		 * Convert pino log level to SeverityLevel
+		 * Convert pino log level to numeric Application Insights severity (wire format).
 		 * */
-		convertLevel(level: number): import("applicationinsights").Contracts.SeverityLevel;
+		convertLevel(level: number): number;
 		/**
 		 * Extract properties from log line
 		 * */
@@ -94,13 +98,26 @@ declare module '@0dep/pino-applicationinsights' {
 	destination: Writable;
   }
 
-  interface LogTelemetry extends Contracts_1.Telemetry {
-	severity: Contracts_1.SeverityLevel;
+  interface Tracing {
+	/** 32-hex-char W3C trace id */
+	traceId: string;
+	/** 16-hex-char W3C span id (becomes ai.operation.parentId) */
+	spanId: string;
+	/** OTel trace flags; defaults to 1 (sampled). v3 only. */
+	traceFlags?: number;
+	/** W3C tracestate header value. v3 only. */
+	traceState?: string;
+  }
+
+  interface LogTelemetry extends Contracts.Telemetry {
+	severity: Contracts.SeverityLevel;
 	/** Pino log message */
 	msg: string;
 	/** Telemetry properties */
 	properties: Record<string, any>;
 	exception?: Error;
+	/** Distributed tracing correlation ids forwarded by `trackTraceAndException` */
+	tracing?: Tracing;
 	[k: string]: any;
   }
 
@@ -111,17 +128,31 @@ declare module '@0dep/pino-applicationinsights/fake-applicationinsights' {
 	import type { TelemetryClient } from 'applicationinsights';
 	import type { default as nock } from 'nock';
 	/**
-	 * Intercept all calls to application insights
+	 * Intercept calls to application insights.
 	 */
 	export class FakeApplicationInsights {
 		/**
 		 * @param setupString - Fake application insights connection string
 		 */
-		constructor(setupString?: string);
-		client: TelemetryClient;
+		constructor(setupString: string);
 		_endpointURL: URL;
 		_endpointPathname: string;
+		client: TelemetryClient;
 		_scope: nock.Scope;
+		
+		_pending: Array<{
+			kind: "type";
+			type: string;
+			resolve: (data: CollectData) => void;
+		} | {
+			kind: "count";
+			count: number;
+			collected: CollectData[];
+			resolve: (data: CollectData[]) => void;
+		}>;
+		
+		_interceptors: import("nock").Interceptor[];
+		_installDispatcher(): void;
 		/**
 		 * Expect tracked message
 		 * */
@@ -145,20 +176,17 @@ declare module '@0dep/pino-applicationinsights/fake-applicationinsights' {
 		 * */
 		expect(count?: number): Promise<FakeCollectData[]>;
 		/**
-		 * Parse multiline JSON
-		 * */
-		parseLines(deflatedBody: string): any[];
-		/**
-		 * Deflate
-		 * @param body gzipped body
-		 * */
-		deflateSync(body: any): string;
-		/**
-		 * Reset expected faked Application Insights calls
-		 *
-		 * Calls nock clean all
+		 * Reset expected faked Application Insights calls.
 		 * */
 		reset(): void;
+	}
+	class CollectData {
+		
+		constructor(uri: string, method: string, headers: Record<string, any>, body: any);
+		uri: string;
+		method: string;
+		body: any;
+		headers: Record<string, any>;
 	}
   interface FakeCollectBody {
 	ver: number;
