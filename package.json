@@ -1,6 +1,6 @@
 {
   "name": "@0dep/pino-applicationinsights",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Pino applicationinsights transport",
   "type": "module",
   "module": "./src/index.js",
