@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 ## v2.0.1 - 2026-04-27
 
+- same as v2.0.0 but one maintainer tagged the wrong branch
+
 ## v2.0.0 - 2026-04-27
 
 Add `applicationinsights@3` support alongside `v2`. See [README › Application Insights v2 vs v3](./README.md#application-insights-v2-vs-v3) for the full behavioural matrix.
