@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## v2.0.2 - 2026-06-14
+
+- README update to document applicationinsights@3.15 flush behaviour change
+
 ## v2.0.1 - 2026-04-27
 
 - same as v2.0.0 but one maintainer tagged the wrong branch
