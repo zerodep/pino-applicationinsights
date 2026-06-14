@@ -5,6 +5,7 @@ import { pino } from 'pino';
 import * as ck from 'chronokinesis';
 
 import { FakeApplicationInsights } from '../../src/fake-applicationinsights.js';
+import { mockApplicationinsights } from '../helpers/mock-module.js';
 
 const filePath = fileURLToPath(import.meta.url);
 
@@ -33,7 +34,7 @@ let cacheBust = 0;
 
       const ai = await import(version);
       TelemetryClient = ai.TelemetryClient;
-      mock.module('applicationinsights', { cache: false, namedExports: ai });
+      mockApplicationinsights(ai);
       const compose = (await import(`../../src/index.js?v=${version}-${++cacheBust}`)).default;
 
       const flushState = { chain: Promise.resolve() };

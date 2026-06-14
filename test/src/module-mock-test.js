@@ -1,6 +1,8 @@
 import { mock } from 'node:test';
 import { pino } from 'pino';
 
+import { mockApplicationinsights } from '../helpers/mock-module.js';
+
 const connectionString = 'InstrumentationKey=00000000-0000-0000-0000-000000000001;IngestionEndpoint=https://ingestion.local';
 
 function tick() {
@@ -19,7 +21,7 @@ function tick() {
     beforeEach(async () => {
       const ai = await import(version);
       TelemetryClient = ai.TelemetryClient;
-      moduleMock = mock.module('applicationinsights', { cache: false, namedExports: ai });
+      moduleMock = mockApplicationinsights(ai);
       compose = (await import(`../../src/index.js?v=${version}-${++cacheBust}`)).default;
     });
 

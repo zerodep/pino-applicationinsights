@@ -4,6 +4,8 @@ import { pino } from 'pino';
 import config from 'exp-config';
 import request from 'supertest';
 
+import { mockModule, mockApplicationinsights } from '../helpers/mock-module.js';
+
 mkdirSync('./logs', { recursive: true });
 
 const exampleLoggerUrl = new URL('../../example/logger.js', import.meta.url).href;
@@ -23,10 +25,10 @@ let cacheBust = 0;
     before(async () => {
       const ai = await import(version);
 
-      moduleMocks.push(mock.module('applicationinsights', { cache: false, namedExports: ai }));
+      moduleMocks.push(mockApplicationinsights(ai));
 
       moduleMocks.push(
-        mock.module(exampleLoggerUrl, {
+        mockModule(exampleLoggerUrl, {
           defaultExport: pino({ enabled: false }),
           namedExports: { tagKeys: new ai.TelemetryClient(connectionString).context.keys },
         }),
@@ -93,7 +95,7 @@ let cacheBust = 0;
     before(async () => {
       const ai = await import(version);
       const TelemetryClient = ai.TelemetryClient;
-      moduleMocks.push(mock.module('applicationinsights', { cache: false, namedExports: ai }));
+      moduleMocks.push(mockApplicationinsights(ai));
 
       const flushState = { chain: Promise.resolve() };
       for (const method of ['trackTrace', 'trackException', 'trackEvent', 'trackMetric']) {
@@ -134,7 +136,7 @@ let cacheBust = 0;
       );
 
       moduleMocks.push(
-        mock.module(exampleLoggerUrl, {
+        mockModule(exampleLoggerUrl, {
           defaultExport: inProcessLogger,
           namedExports: { tagKeys },
         }),

@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { pino } from 'pino';
 
 import { FakeApplicationInsights } from '../../src/fake-applicationinsights.js';
+import { mockApplicationinsights } from '../helpers/mock-module.js';
 
 let cacheBust = 0;
 
@@ -16,7 +17,7 @@ let cacheBust = 0;
 
     before(async () => {
       const ai = await import(version);
-      mock.module('applicationinsights', { cache: false, namedExports: ai });
+      mockApplicationinsights(ai);
       compose = (await import(`../../src/index.js?close-v=${version}-${++cacheBust}`)).default;
     });
 

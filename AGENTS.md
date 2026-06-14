@@ -51,7 +51,7 @@ The shared loop pattern in `test/src/module-mock-test.js`, `log-transport-test.j
   describe(`… ${version}`, () => {
     before(async () => {
       const ai = await import(version);
-      mock.module('applicationinsights', { namedExports: ai, defaultExport: ai });
+      mockApplicationinsights(ai); // test/helpers/mock-module.js — see Module-mock helper below
       // Cache-bust BOTH compose and FakeApplicationInsights so each iteration
       // re-evaluates them under the active mock — without ?v=… the second
       // iteration would still hold the first version's TelemetryClient ref.
@@ -78,6 +78,8 @@ The shared loop pattern in `test/src/module-mock-test.js`, `log-transport-test.j
   });
 });
 ```
+
+**Module-mock helper (`test/helpers/mock-module.js`, required for Node >= 24).** Every `mock.module('applicationinsights', …)` call goes through `mockApplicationinsights(ai)` (and `mockModule(url, …)` for the example-logger ESM mock) rather than calling `mock.module` inline. Node 24 deprecated `namedExports`/`defaultExport` in favour of a single `exports` object **and** rewrote the CJS mock loader (`cjsMockModuleLoad`) to overlay the named exports onto `exports.default` with `Object.defineProperty`. Passing the live ESM namespace `ai` makes `exports.default` point at the real `applicationinsights` module — whose exports are non-configurable getters (compiled TypeScript) — so the overlay throws `TypeError: Cannot redefine property: __esModule` / `Configuration` on Node >= 24 (CI's `latest`). The helper sidesteps it by handing over a fresh, configurable, `default`-free copy of the named exports (so the loader builds a brand-new exports object), and picks `exports` on Node >= 24 vs the older `namedExports`/`defaultExport` on Node 20/22 (the `exports` option is silently ignored there). Keep all module mocking funnelled through this helper; don't reintroduce inline `mock.module('applicationinsights', { namedExports: ai })`.
 
 **Flush serialization (`@opentelemetry/sdk-logs >= 0.215`, pulled in by `applicationinsights@3.15`).** The auto-flush patch must chain its flushes, not fire them concurrently. The new OTel `BatchLogRecordProcessorBase._flushAll()` guards against concurrent flushes: a `forceFlush()` that overlaps the previous flush's still-settling async tail (`_flushing` is only reset _after_ `exportCompleted`) returns immediately **without** exporting the just-queued record, which then waits for the ~5s `scheduledDelayMillis` tick — blowing mocha's 2s timeout. Serializing via `flushState.chain.then(() => this.flush())` makes each flush wait for the prior one to fully settle (the SDK's `flush()` resolves only after `_flushAll` completes), so nothing races the guard. This is upstream behaviour ([opentelemetry-js#6356](https://github.com/open-telemetry/opentelemetry-js/pull/6356)), surfaced neither in the `applicationinsights` changelog nor as a flagged breaking change; consumer-facing guidance lives in README → **Flush timing (v3)**. Reliable flushing also means **un-awaited telemetry now actually gets delivered** — a test that logs without `await`-ing its expectation can leak that envelope into a later shared `fakeAI.expect(n)` count collector; drain every log you emit (see `compose-test.js#no TelemetryClient config is ok`).
 

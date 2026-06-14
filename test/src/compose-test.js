@@ -5,6 +5,7 @@ import { pino } from 'pino';
 
 import compose from '../../src/index.js';
 import { FakeApplicationInsights } from '../../src/fake-applicationinsights.js';
+import { mockApplicationinsights } from '../helpers/mock-module.js';
 
 let cacheBust = 0;
 
@@ -93,7 +94,7 @@ describe('compose', () => {
     before(async () => {
       const ai = await import(version);
       TelemetryClient = ai.TelemetryClient;
-      mock.module('applicationinsights', { cache: false, namedExports: ai });
+      mockApplicationinsights(ai);
       scopedCompose = (await import(`../../src/index.js?compose-v=${version}-${++cacheBust}`)).default;
 
       const flushState = { chain: Promise.resolve() };

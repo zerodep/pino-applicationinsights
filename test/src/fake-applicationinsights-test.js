@@ -2,6 +2,8 @@ import { mock } from 'node:test';
 import { randomUUID } from 'node:crypto';
 import { pino } from 'pino';
 
+import { mockApplicationinsights } from '../helpers/mock-module.js';
+
 let cacheBust = 0;
 
 ['applicationinsights', 'applicationinsights-v3'].forEach((version) => {
@@ -16,7 +18,7 @@ let cacheBust = 0;
     before(async () => {
       const ai = await import(version);
       const TelemetryClient = ai.TelemetryClient;
-      mock.module('applicationinsights', { cache: false, namedExports: ai });
+      mockApplicationinsights(ai);
 
       const bust = `?fai-v=${version}-${++cacheBust}`;
       compose = (await import(`../../src/index.js${bust}`)).default;
