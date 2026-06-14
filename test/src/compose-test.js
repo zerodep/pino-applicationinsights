@@ -96,12 +96,13 @@ describe('compose', () => {
       mock.module('applicationinsights', { cache: false, namedExports: ai });
       scopedCompose = (await import(`../../src/index.js?compose-v=${version}-${++cacheBust}`)).default;
 
+      const flushState = { chain: Promise.resolve() };
       for (const method of ['trackTrace', 'trackException', 'trackEvent', 'trackMetric']) {
         const original = TelemetryClient.prototype[method];
         if (typeof original !== 'function') continue;
         mock.method(TelemetryClient.prototype, method, function autoFlush(...args) {
           const result = original.apply(this, args);
-          if (typeof this.flush === 'function') this.flush();
+          if (typeof this.flush === 'function') flushState.chain = flushState.chain.then(() => this.flush()).catch(() => {});
           return result;
         });
       }
@@ -145,7 +146,7 @@ describe('compose', () => {
         expect(msg.body.data.baseData).to.have.property('properties').that.deep.equal({ bar: 'baz' });
       });
 
-      it('no TelemetryClient config is ok', () => {
+      it('no TelemetryClient config is ok', async () => {
         let client;
         const transport = scopedCompose({
           track(chunk) {
@@ -157,12 +158,15 @@ describe('compose', () => {
         });
         const logger = pino(transport);
 
+        const expectMessage = fakeAI.expectMessageData();
         logger.info({ bar: 'baz' }, 'foo');
 
         expect(client.config).to.be.ok;
         if (isV2) {
           expect(client.config).to.have.property('maxBatchSize').to.be.above(1);
         }
+
+        await expectMessage;
         transport.destroy();
       });
 

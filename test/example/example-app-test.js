@@ -95,12 +95,13 @@ let cacheBust = 0;
       const TelemetryClient = ai.TelemetryClient;
       moduleMocks.push(mock.module('applicationinsights', { cache: false, namedExports: ai }));
 
+      const flushState = { chain: Promise.resolve() };
       for (const method of ['trackTrace', 'trackException', 'trackEvent', 'trackMetric']) {
         const original = TelemetryClient.prototype[method];
         if (typeof original !== 'function') continue;
         mock.method(TelemetryClient.prototype, method, function autoFlush(...args) {
           const result = original.apply(this, args);
-          if (typeof this.flush === 'function') this.flush();
+          if (typeof this.flush === 'function') flushState.chain = flushState.chain.then(() => this.flush()).catch(() => {});
           return result;
         });
       }

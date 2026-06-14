@@ -22,12 +22,13 @@ let cacheBust = 0;
       compose = (await import(`../../src/index.js${bust}`)).default;
       const { FakeApplicationInsights } = await import(`../../src/fake-applicationinsights.js${bust}`);
 
+      const flushState = { chain: Promise.resolve() };
       for (const method of ['trackTrace', 'trackException', 'trackEvent', 'trackMetric']) {
         const original = TelemetryClient.prototype[method];
         if (typeof original !== 'function') continue;
         mock.method(TelemetryClient.prototype, method, function autoFlush(...args) {
           const result = original.apply(this, args);
-          if (typeof this.flush === 'function') this.flush();
+          if (typeof this.flush === 'function') flushState.chain = flushState.chain.then(() => this.flush()).catch(() => {});
           return result;
         });
       }

@@ -60,13 +60,16 @@ The shared loop pattern in `test/src/module-mock-test.js`, `log-transport-test.j
       const { FakeApplicationInsights } = await import(`../../src/fake-applicationinsights.js${bust}`);
       // Auto-flush patch: v3's BatchLogRecordProcessor delays exports ~5s and
       // explicitly drops maxBatchSize, so wrap each track method to flush after
-      // the original. v2 flushes are cheap when the channel is idle.
+      // the original. v2 flushes are cheap when the channel is idle. The flushes
+      // are *serialized* through `flushState.chain` (a const holder so ESLint's
+      // no-loop-func is satisfied) — see the flush-serialization note below.
+      const flushState = { chain: Promise.resolve() };
       for (const m of ['trackTrace', 'trackException', 'trackEvent', 'trackMetric']) {
         const original = TelemetryClient.prototype[m];
         if (typeof original !== 'function') continue;
         mock.method(TelemetryClient.prototype, m, function (...args) {
           const r = original.apply(this, args);
-          if (typeof this.flush === 'function') this.flush();
+          if (typeof this.flush === 'function') flushState.chain = flushState.chain.then(() => this.flush()).catch(() => {});
           return r;
         });
       }
@@ -75,6 +78,8 @@ The shared loop pattern in `test/src/module-mock-test.js`, `log-transport-test.j
   });
 });
 ```
+
+**Flush serialization (`@opentelemetry/sdk-logs >= 0.215`, pulled in by `applicationinsights@3.15`).** The auto-flush patch must chain its flushes, not fire them concurrently. The new OTel `BatchLogRecordProcessorBase._flushAll()` guards against concurrent flushes: a `forceFlush()` that overlaps the previous flush's still-settling async tail (`_flushing` is only reset _after_ `exportCompleted`) returns immediately **without** exporting the just-queued record, which then waits for the ~5s `scheduledDelayMillis` tick — blowing mocha's 2s timeout. Serializing via `flushState.chain.then(() => this.flush())` makes each flush wait for the prior one to fully settle (the SDK's `flush()` resolves only after `_flushAll` completes), so nothing races the guard. This is upstream behaviour ([opentelemetry-js#6356](https://github.com/open-telemetry/opentelemetry-js/pull/6356)), surfaced neither in the `applicationinsights` changelog nor as a flagged breaking change; consumer-facing guidance lives in README → **Flush timing (v3)**. Reliable flushing also means **un-awaited telemetry now actually gets delivered** — a test that logs without `await`-ing its expectation can leak that envelope into a later shared `fakeAI.expect(n)` count collector; drain every log you emit (see `compose-test.js#no TelemetryClient config is ok`).
 
 - v3-contract divergences kept inside the loop with `if (version === 'applicationinsights')` skips: `tagOverrides` (v3 ignores them — wire `tags` come from OTel resource attributes), `hasFullStack`/v2-shaped `parsedStack`, bare-instrumentation-key initialisation (v3 requires a full connection string).
 - `test/src/applicationinsights-v3-test.js` — extra end-to-end coverage of the real v3 SDK driven directly (no `mock.module`), with explicit `await v3Client.flush()`.

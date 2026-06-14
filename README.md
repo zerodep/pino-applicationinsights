@@ -29,6 +29,7 @@ Ships with [fake applicationinsights](#class-fakeapplicationinsightssetupstring)
   - [Severity values](#severity-values)
   - [`tagOverrides`](#tagoverrides)
   - [`client.config.\*`](#clientconfig)
+  - [Flush timing (v3)](#flush-timing-v3)
   - [Disabling statsbeat](#disabling-statsbeat)
   - [Connection string vs bare instrumentation key](#connection-string-vs-bare-instrumentation-key)
   - [Endpoint URL](#endpoint-url)
@@ -360,6 +361,14 @@ This library targets `applicationinsights >= 2 < 4`. The v3 SDK is a thin "class
 - v2's `client.config` accepts dozens of knobs (`maxBatchSize`, `endpointUrl`, `samplingPercentage`, `disableAppInsights`, `enableAutoCollect*`, …) and applies them at runtime.
 - v3 exposes a `client.config` object but most v2 knobs are no-ops or warn (`The maxBatchSize configuration option is not supported by the shim`). v3 batches via OTel's `BatchLogRecordProcessor` (default ~5s `scheduledDelayMillis`); call `await client.flush()` if you need eager export.
 - The library's `applyClientConfig` merges your `config` into `client.config` regardless of version, but you should expect v3 to silently drop most of it.
+
+### Flush timing (v3)
+
+v3 buffers log records in OTel's `BatchLogRecordProcessor` and only exports them on the `scheduledDelayMillis` tick (~5s, not configurable through the shim) or at shutdown. For eager export call `await client.flush()` — but mind one OpenTelemetry gotcha:
+
+- In `@opentelemetry/sdk-logs >= 0.215` (pulled in by `applicationinsights@3.15`), a `forceFlush()` that **overlaps an already in-flight flush returns immediately without exporting** the records queued in that window — they fall back to the next ~5s tick. This is upstream behaviour ([opentelemetry-js#6356](https://github.com/open-telemetry/opentelemetry-js/pull/6356)); it is not surfaced in the `applicationinsights` changelog.
+- The practical consequence: **`await` each flush before triggering the next** rather than firing `client.flush()` concurrently. Awaiting it (the SDK's `flush()` resolves only after the export settles) keeps successive flushes from racing the guard.
+- For process exit you don't need to manage this yourself — see [Graceful shutdown](#graceful-shutdown), which calls `client.shutdown()` to drain the batch processor.
 
 <a id="statsbeat"></a>
 

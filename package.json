@@ -1,6 +1,6 @@
 {
   "name": "@0dep/pino-applicationinsights",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Pino applicationinsights transport",
   "type": "module",
   "module": "./src/index.js",
@@ -65,7 +65,7 @@
     "c8": "^11.0.0",
     "chai": "^6.2.1",
     "chronokinesis": "^8.0.0",
-    "dts-buddy": "^0.7.0",
+    "dts-buddy": "^0.8.0",
     "eslint": "^10.2.0",
     "exp-config": "^4.2.1",
     "express": "^5.1.0",
