@@ -6,7 +6,7 @@ import { TelemetryClient } from 'applicationinsights';
 import { getContext } from './middleware/context.js';
 
 const nodeRequire = createRequire(fileURLToPath(import.meta.url));
-const { version } = nodeRequire('../package.json');
+const { version } = nodeRequire('./package.json');
 
 const destination = config.logging?.target === 'file' ? `./logs/${config.envName}.log` : 1;
 

@@ -2,9 +2,8 @@ import { randomUUID } from 'node:crypto';
 import { pino } from 'pino';
 import { TelemetryClient as V3TelemetryClient } from 'applicationinsights-v3';
 
-import compose, { TelemetryTransformation } from '../../src/index.js';
-import { FakeApplicationInsights } from '../../src/fake-applicationinsights.js';
-import { applyClientConfig } from '../../src/client-compat.js';
+import compose, { TelemetryTransformation, applyClientConfig } from '@0dep/pino-applicationinsights';
+import { FakeApplicationInsights } from '@0dep/pino-applicationinsights/fake-applicationinsights';
 
 describe('applicationinsights v3 (live shim)', () => {
   const connectionString = `InstrumentationKey=${randomUUID()};IngestionEndpoint=https://ingestion.local;LiveEndpoint=https://livemonitor.local/`;

@@ -2,8 +2,10 @@ import { mock } from 'node:test';
 import { randomUUID } from 'node:crypto';
 import { pino } from 'pino';
 
-import { FakeApplicationInsights } from '../../src/fake-applicationinsights.js';
+import { FakeApplicationInsights } from '@0dep/pino-applicationinsights/fake-applicationinsights';
 import { mockApplicationinsights } from '../helpers/mock-module.js';
+
+const composeUrl = import.meta.resolve('@0dep/pino-applicationinsights');
 
 let cacheBust = 0;
 
@@ -18,7 +20,7 @@ let cacheBust = 0;
     before(async () => {
       const ai = await import(version);
       mockApplicationinsights(ai);
-      compose = (await import(`../../src/index.js?close-v=${version}-${++cacheBust}`)).default;
+      compose = (await import(`${composeUrl}?close-v=${version}-${++cacheBust}`)).default;
     });
 
     after(() => {

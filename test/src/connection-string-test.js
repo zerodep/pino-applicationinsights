@@ -1,4 +1,4 @@
-import { parseConnectionString } from '../../src/connection-string.js';
+import { parseConnectionString } from '@0dep/pino-applicationinsights/fake-applicationinsights';
 
 describe('parseConnectionString', () => {
   it('parses an instrumentation key and ingestion endpoint', () => {

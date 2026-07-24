@@ -9,6 +9,8 @@ import { mockModule, mockApplicationinsights } from '../helpers/mock-module.js';
 mkdirSync('./logs', { recursive: true });
 
 const exampleLoggerUrl = new URL('../../example/logger.js', import.meta.url).href;
+const composeUrl = import.meta.resolve('@0dep/pino-applicationinsights');
+const fakeAIUrl = import.meta.resolve('@0dep/pino-applicationinsights/fake-applicationinsights');
 const connectionString = config.applicationinsights.connectionstring;
 
 const basicAuthHeader = (user, pass) => 'Basic ' + Buffer.from(`${user}:${pass}`).toString('base64');
@@ -83,7 +85,7 @@ let cacheBust = 0;
   describe(`example app forwards logs to Application Insights via ${version}`, () => {
     /** @type {import('express').Express} */
     let inProcessApp;
-    /** @type {import('../../src/fake-applicationinsights.js').FakeApplicationInsights} */
+    /** @type {import('@0dep/pino-applicationinsights/fake-applicationinsights').FakeApplicationInsights} */
     let fakeAI;
     /** @type {Record<string, string>} */
     let tagKeys;
@@ -109,8 +111,8 @@ let cacheBust = 0;
       }
 
       const bust = `?ex-fai-v=${version}-${++cacheBust}`;
-      const compose = (await import(`../../src/index.js${bust}`)).default;
-      const { FakeApplicationInsights } = await import(`../../src/fake-applicationinsights.js${bust}`);
+      const compose = (await import(`${composeUrl}${bust}`)).default;
+      const { FakeApplicationInsights } = await import(`${fakeAIUrl}${bust}`);
       const { getContext } = await import(`../../example/middleware/context.js`);
 
       fakeAI = new FakeApplicationInsights(connectionString);

@@ -3,9 +3,11 @@ import { mock } from 'node:test';
 import { randomUUID } from 'node:crypto';
 import { pino } from 'pino';
 
-import compose from '../../src/index.js';
-import { FakeApplicationInsights } from '../../src/fake-applicationinsights.js';
+import compose from '@0dep/pino-applicationinsights';
+import { FakeApplicationInsights } from '@0dep/pino-applicationinsights/fake-applicationinsights';
 import { mockApplicationinsights } from '../helpers/mock-module.js';
+
+const composeUrl = import.meta.resolve('@0dep/pino-applicationinsights');
 
 let cacheBust = 0;
 
@@ -95,7 +97,7 @@ describe('compose', () => {
       const ai = await import(version);
       TelemetryClient = ai.TelemetryClient;
       mockApplicationinsights(ai);
-      scopedCompose = (await import(`../../src/index.js?compose-v=${version}-${++cacheBust}`)).default;
+      scopedCompose = (await import(`${composeUrl}?compose-v=${version}-${++cacheBust}`)).default;
 
       const flushState = { chain: Promise.resolve() };
       for (const method of ['trackTrace', 'trackException', 'trackEvent', 'trackMetric']) {

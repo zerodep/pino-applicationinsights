@@ -4,8 +4,8 @@ import { expect } from 'chai';
 import { TelemetryClient } from 'applicationinsights';
 import { MetricTelemetry } from 'applicationinsights/out/Declarations/Contracts/index.js';
 
-import compose from '../../src/index.js';
-import { FakeApplicationInsights } from '../../src/fake-applicationinsights.js';
+import compose from '@0dep/pino-applicationinsights';
+import { FakeApplicationInsights } from '@0dep/pino-applicationinsights/fake-applicationinsights';
 import { LogTelemetry } from '../../types/interfaces.js';
 
 describe('log transport', () => {

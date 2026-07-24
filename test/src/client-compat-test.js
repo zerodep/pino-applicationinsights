@@ -1,4 +1,4 @@
-import { applyClientConfig } from '../../src/client-compat.js';
+import { applyClientConfig } from '@0dep/pino-applicationinsights';
 
 describe('applyClientConfig', () => {
   describe('with a v2-style client (exposes getStatsbeat)', () => {

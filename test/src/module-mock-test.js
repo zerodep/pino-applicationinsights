@@ -3,6 +3,7 @@ import { pino } from 'pino';
 
 import { mockApplicationinsights } from '../helpers/mock-module.js';
 
+const composeUrl = import.meta.resolve('@0dep/pino-applicationinsights');
 const connectionString = 'InstrumentationKey=00000000-0000-0000-0000-000000000001;IngestionEndpoint=https://ingestion.local';
 
 function tick() {
@@ -22,7 +23,7 @@ function tick() {
       const ai = await import(version);
       TelemetryClient = ai.TelemetryClient;
       moduleMock = mockApplicationinsights(ai);
-      compose = (await import(`../../src/index.js?v=${version}-${++cacheBust}`)).default;
+      compose = (await import(`${composeUrl}?v=${version}-${++cacheBust}`)).default;
     });
 
     afterEach(() => {

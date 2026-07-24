@@ -4,9 +4,10 @@ import { fileURLToPath } from 'node:url';
 import { pino } from 'pino';
 import * as ck from 'chronokinesis';
 
-import { FakeApplicationInsights } from '../../src/fake-applicationinsights.js';
+import { FakeApplicationInsights } from '@0dep/pino-applicationinsights/fake-applicationinsights';
 import { mockApplicationinsights } from '../helpers/mock-module.js';
 
+const composeUrl = import.meta.resolve('@0dep/pino-applicationinsights');
 const filePath = fileURLToPath(import.meta.url);
 
 const wireSeverity = {
@@ -35,7 +36,7 @@ let cacheBust = 0;
       const ai = await import(version);
       TelemetryClient = ai.TelemetryClient;
       mockApplicationinsights(ai);
-      const compose = (await import(`../../src/index.js?v=${version}-${++cacheBust}`)).default;
+      const compose = (await import(`${composeUrl}?v=${version}-${++cacheBust}`)).default;
 
       const flushState = { chain: Promise.resolve() };
       for (const method of ['trackTrace', 'trackException', 'trackEvent', 'trackMetric']) {

@@ -1,5 +1,5 @@
 import zlib from 'node:zlib';
-import { extractTelemetryItems } from '../../src/wire-format.js';
+import { extractTelemetryItems } from '@0dep/pino-applicationinsights/fake-applicationinsights';
 
 describe('extractTelemetryItems (FakeApplicationInsights body decoder)', () => {
   it('decodes the v2 wire format (gzipped NDJSON, hex-encoded by nock)', () => {

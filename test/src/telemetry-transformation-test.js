@@ -4,7 +4,7 @@ import { pino } from 'pino';
 import { Contracts } from 'applicationinsights';
 import * as ck from 'chronokinesis';
 
-import { TelemetryTransformation } from '../../src/index.js';
+import { TelemetryTransformation } from '@0dep/pino-applicationinsights';
 
 const tagKeys = new Contracts.ContextTagKeys();
 

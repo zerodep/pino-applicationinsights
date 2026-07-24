@@ -9,6 +9,16 @@ declare module '@0dep/pino-applicationinsights' {
 	 * */
 	export default function compose(opts: ConnectionStringComposeConfig | DestinationComposeConfig, Transformation?: typeof TelemetryTransformation): ReturnType<typeof import("pino-abstract-transport")>;
 	/**
+	 * Apply optional `config` to a `TelemetryClient`.
+	 * */
+	export function applyClientConfig(client: {
+		config?: Record<string, any>;
+		getStatsbeat?: () => {
+			enable(state: boolean): void;
+		};
+		initialize?: () => void;
+	}, config: Record<string, any> | undefined): void;
+	/**
 	 * Default track function
 	 *
 	 * Tracks trace and occasional exception
@@ -127,6 +137,19 @@ declare module '@0dep/pino-applicationinsights' {
 declare module '@0dep/pino-applicationinsights/fake-applicationinsights' {
 	import type { TelemetryClient } from 'applicationinsights';
 	import type { default as nock } from 'nock';
+	/**
+	 * Parse an Application Insights connection string into its component parts.
+	 * */
+	export function parseConnectionString(input: string): {
+		instrumentationKey: string;
+		ingestionEndpoint: string;
+	};
+	/**
+	 * Decode an Application Insights ingestion request body into TelemetryItem objects.
+	 * @param body - Body received by the nock matcher.
+	 * @returns TelemetryItem-shaped objects (each has `.data.baseType`).
+	 */
+	export function extractTelemetryItems(body: unknown): any[];
 	/**
 	 * Intercept calls to application insights.
 	 */

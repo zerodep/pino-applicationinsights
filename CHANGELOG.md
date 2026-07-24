@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## v2.0.3 - 2026-07-24
+
+- remove files, agent wanted one file per function for some reason
+- put example app in npm workspace
+
 ## v2.0.2 - 2026-06-14
 
 - README update to document applicationinsights@3.15 flush behaviour change

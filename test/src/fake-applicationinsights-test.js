@@ -4,6 +4,9 @@ import { pino } from 'pino';
 
 import { mockApplicationinsights } from '../helpers/mock-module.js';
 
+const composeUrl = import.meta.resolve('@0dep/pino-applicationinsights');
+const fakeAIUrl = import.meta.resolve('@0dep/pino-applicationinsights/fake-applicationinsights');
+
 let cacheBust = 0;
 
 ['applicationinsights', 'applicationinsights-v3'].forEach((version) => {
@@ -13,7 +16,7 @@ let cacheBust = 0;
     /** @type {(opts: any) => any} */
     let compose;
 
-    /** @type {import('../../src/fake-applicationinsights.js').FakeApplicationInsights} */
+    /** @type {import('@0dep/pino-applicationinsights/fake-applicationinsights').FakeApplicationInsights} */
     let fakeAI;
     before(async () => {
       const ai = await import(version);
@@ -21,8 +24,8 @@ let cacheBust = 0;
       mockApplicationinsights(ai);
 
       const bust = `?fai-v=${version}-${++cacheBust}`;
-      compose = (await import(`../../src/index.js${bust}`)).default;
-      const { FakeApplicationInsights } = await import(`../../src/fake-applicationinsights.js${bust}`);
+      compose = (await import(`${composeUrl}${bust}`)).default;
+      const { FakeApplicationInsights } = await import(`${fakeAIUrl}${bust}`);
 
       const flushState = { chain: Promise.resolve() };
       for (const method of ['trackTrace', 'trackException', 'trackEvent', 'trackMetric']) {
@@ -49,7 +52,7 @@ let cacheBust = 0;
       const original = Object.getOwnPropertyDescriptor(ai.TelemetryClient.prototype, 'getStatsbeat');
       Object.defineProperty(ai.TelemetryClient.prototype, 'getStatsbeat', { value: undefined, configurable: true, writable: true });
       try {
-        const { FakeApplicationInsights } = await import(`../../src/fake-applicationinsights.js?fai-no-statsbeat=${++cacheBust}`);
+        const { FakeApplicationInsights } = await import(`${fakeAIUrl}?fai-no-statsbeat=${++cacheBust}`);
         const fai = new FakeApplicationInsights(connectionString);
         expect(fai.client).to.be.ok;
         expect(typeof fai.client.getStatsbeat).to.equal('undefined');

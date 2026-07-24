@@ -1,8 +1,11 @@
+import { gunzipSync } from 'node:zlib';
+
 import { TelemetryClient } from 'applicationinsights';
 import nock from 'nock';
 
-import { parseConnectionString, INGESTION_PATHNAME } from './connection-string.js';
-import { extractTelemetryItems } from './wire-format.js';
+const DEFAULT_INGESTION_ENDPOINT = 'https://dc.services.visualstudio.com';
+
+const INGESTION_PATHNAME = '/v2.1/track';
 
 class CollectData {
   /**
@@ -145,5 +148,76 @@ export class FakeApplicationInsights {
     this._pending.length = 0;
     for (const interceptor of this._interceptors) nock.removeInterceptor(interceptor);
     this._interceptors.length = 0;
+  }
+}
+
+/**
+ * Parse an Application Insights connection string into its component parts.
+ * @param {string} input
+ * @returns {{ instrumentationKey: string, ingestionEndpoint: string }}
+ */
+export function parseConnectionString(input) {
+  if (typeof input !== 'string' || input.length === 0) {
+    throw new TypeError('connectionString must be a non-empty string');
+  }
+
+  if (!input.includes('=')) {
+    return { instrumentationKey: input, ingestionEndpoint: DEFAULT_INGESTION_ENDPOINT };
+  }
+
+  /** @type {Record<string, string>} */
+  const parts = {};
+  for (const segment of input.split(';')) {
+    if (!segment) continue;
+    const eq = segment.indexOf('=');
+    if (eq <= 0) continue;
+    const key = segment.slice(0, eq).trim().toLowerCase();
+    const value = segment.slice(eq + 1).trim();
+    parts[key] = value;
+  }
+
+  const ingestionEndpoint = (parts.ingestionendpoint ?? DEFAULT_INGESTION_ENDPOINT).replace(/\/+$/, '');
+  return { instrumentationKey: parts.instrumentationkey, ingestionEndpoint };
+}
+
+/**
+ * Decode an Application Insights ingestion request body into TelemetryItem objects.
+ * @param {unknown} body - Body received by the nock matcher.
+ * @returns {any[]} TelemetryItem-shaped objects (each has `.data.baseType`).
+ */
+export function extractTelemetryItems(body) {
+  /** @type {unknown} */
+  let payload = body;
+
+  if (typeof payload === 'string') {
+    const gunzipped = tryGunzipHex(payload);
+    if (gunzipped !== undefined) payload = gunzipped;
+  }
+
+  if (typeof payload === 'string') {
+    const trimmed = payload.trim();
+    if (trimmed.startsWith('[')) return JSON.parse(trimmed);
+    return trimmed
+      .split(/\r?\n/)
+      .filter(Boolean)
+      .map((line) => JSON.parse(line));
+  }
+
+  if (Array.isArray(payload)) return payload;
+  if (payload && typeof payload === 'object') return [payload];
+  return [];
+}
+
+/**
+ * @param {string} hex
+ * @returns {string | undefined}
+ */
+function tryGunzipHex(hex) {
+  if (!/^[0-9a-fA-F]+$/.test(hex) || hex.length < 4) return undefined;
+  if (hex.slice(0, 4).toLowerCase() !== '1f8b') return undefined;
+  try {
+    return gunzipSync(Buffer.from(hex, 'hex')).toString();
+  } catch {
+    return undefined;
   }
 }

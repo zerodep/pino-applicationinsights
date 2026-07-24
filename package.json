@@ -1,8 +1,11 @@
 {
   "name": "@0dep/pino-applicationinsights",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "Pino applicationinsights transport",
   "type": "module",
+  "workspaces": [
+    "example"
+  ],
   "module": "./src/index.js",
   "main": "./lib/index.cjs",
   "types": "./types/index.d.ts",
@@ -22,7 +25,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "test:ts": "mocha --config test/typescript/.mocharc.json",
+    "test:ts": "TS_NODE_PROJECT=test/tsconfig.json mocha --config test/typescript/.mocharc.json",
     "pretest": "npm run build",
     "test": "mocha",
     "posttest": "npm run test:ts && npm run lint && npm run test:md",
@@ -57,18 +60,16 @@
     "@rollup/plugin-commonjs": "^29.0.0",
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@types/chai": "^5.0.0",
-    "@types/express": "^5.0.6",
-    "@types/mocha": "^10.0.3",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^20.19.25",
     "applicationinsights": "^2.9.0",
     "applicationinsights-v3": "npm:applicationinsights@^3.14.0",
-    "c8": "^11.0.0",
+    "c8": "^12.0.0",
     "chai": "^6.2.1",
     "chronokinesis": "^8.0.0",
     "dts-buddy": "^0.8.0",
     "eslint": "^10.2.0",
     "exp-config": "^4.2.1",
-    "express": "^5.1.0",
     "globals": "^17.0.0",
     "mocha": "^11.7.5",
     "nock": "^14.0.10",
@@ -82,9 +83,6 @@
     "ts-node": "^10.9.1"
   },
   "overrides": {
-    "c8": {
-      "yargs": "^18.0.0"
-    },
     "mocha": {
       "yargs": "^18.0.0"
     }
