@@ -1,6 +1,5 @@
 import { mock } from 'node:test';
 import { randomUUID } from 'node:crypto';
-import { fileURLToPath } from 'node:url';
 import { pino } from 'pino';
 import * as ck from 'chronokinesis';
 
@@ -8,7 +7,7 @@ import { FakeApplicationInsights } from '@0dep/pino-applicationinsights/fake-app
 import { mockApplicationinsights } from '../helpers/mock-module.js';
 
 const composeUrl = import.meta.resolve('@0dep/pino-applicationinsights');
-const filePath = fileURLToPath(import.meta.url);
+const fileUrl = import.meta.url;
 
 /** @type {Record<string, Record<string, number | string>>} */
 const wireSeverity = {
@@ -253,7 +252,7 @@ let cacheBust = 0;
 
         expect(exception).to.deep.include({ typeName: 'TypeError', hasFullStack: true, message: 'bar' });
         expect(exception).to.have.property('parsedStack').with.property('length').that.is.above(0);
-        expect(exception.parsedStack[0].fileName, 'stack file name').to.include(filePath);
+        expect(exception.parsedStack[0].fileName, 'stack file name').to.equal(fileUrl);
       });
 
       it('logs exception with tag overrides', async () => {
