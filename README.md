@@ -1,6 +1,6 @@
 # pino applicationinsights transport
 
-[![Build](https://github.com/zerodep/pino-applicationinsights/actions/workflows/build.yaml/badge.svg)](https://github.com/zerodep/pino-applicationinsights/actions/workflows/build.yaml)[![Coverage Status](https://coveralls.io/repos/github/zerodep/pino-applicationinsights/badge.svg?branch=default)](https://coveralls.io/github/zerodep/pino-applicationinsights?branch=default)
+[![Build](https://github.com/zerodep/pino-applicationinsights/actions/workflows/build.yaml/badge.svg)](https://github.com/zerodep/pino-applicationinsights/actions/workflows/build.yaml)[![Build (Windows)](https://github.com/zerodep/pino-applicationinsights/actions/workflows/build-windows.yaml/badge.svg)](https://github.com/zerodep/pino-applicationinsights/actions/workflows/build-windows.yaml)[![Coverage Status](https://coveralls.io/repos/github/zerodep/pino-applicationinsights/badge.svg?branch=default)](https://coveralls.io/github/zerodep/pino-applicationinsights?branch=default)
 
 Forward pino logger to Application Insights.
 
@@ -18,7 +18,7 @@ Ships with [fake applicationinsights](#class-fakeapplicationinsightssetupstring)
   - [Custom `track` functions](#custom-track-functions)
 - [Graceful shutdown](#graceful-shutdown)
 - [API](#api)
-  - [`compose(opts[, TelemetryTransformation]) => Stream`](#composeopts-telemetrytransformation-stream)
+  - [`compose(opts[, TelemetryTransformation]) => Stream`](#composeopts-telemetrytransformation--stream)
   - [`class TelemetryTransformation(options[, config])`](#class-telemetrytransformationoptions-config)
     - [Telemetrish object](#telemetrish-object)
   - [`class FakeApplicationInsights(setupString)`](#class-fakeapplicationinsightssetupstring)
@@ -28,7 +28,7 @@ Ships with [fake applicationinsights](#class-fakeapplicationinsightssetupstring)
 - [Application Insights v2 vs v3](#application-insights-v2-vs-v3)
   - [Severity values](#severity-values)
   - [`tagOverrides`](#tagoverrides)
-  - [`client.config.\*`](#clientconfig)
+  - [`client.config.*`](#clientconfig)
   - [Flush timing (v3)](#flush-timing-v3)
   - [Disabling statsbeat](#disabling-statsbeat)
   - [Connection string vs bare instrumentation key](#connection-string-vs-bare-instrumentation-key)

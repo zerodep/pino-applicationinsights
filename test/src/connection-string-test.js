@@ -40,8 +40,11 @@ describe('parseConnectionString', () => {
   });
 
   it('throws TypeError on a non-string input', () => {
+    // @ts-expect-error
     expect(() => parseConnectionString(undefined)).to.throw(TypeError);
+    // @ts-expect-error
     expect(() => parseConnectionString(null)).to.throw(TypeError);
+    // @ts-expect-error
     expect(() => parseConnectionString({})).to.throw(TypeError);
   });
 

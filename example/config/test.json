@@ -8,7 +8,7 @@
     "connectionstring": "InstrumentationKey=00000000-0000-0000-0000-000000000001;IngestionEndpoint=https://ingestion.local",
     "config": {
       "maxBatchSize": 1,
-      "disableStatsBeat": true,
+      "disableStatsbeat": true,
       "useGlobalProviders": false
     }
   }

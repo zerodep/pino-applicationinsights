@@ -31,11 +31,19 @@ let cacheBust = 0;
       for (const method of ['trackTrace', 'trackException', 'trackEvent', 'trackMetric']) {
         const original = TelemetryClient.prototype[method];
         if (typeof original !== 'function') continue;
-        mock.method(TelemetryClient.prototype, method, function autoFlush(...args) {
-          const result = original.apply(this, args);
-          if (typeof this.flush === 'function') flushState.chain = flushState.chain.then(() => this.flush()).catch(() => {});
-          return result;
-        });
+        mock.method(
+          TelemetryClient.prototype,
+          method,
+          /**
+           * @this {import('applicationinsights').TelemetryClient}
+           * @param {unknown[]} args
+           */
+          function autoFlush(...args) {
+            const result = original.apply(this, args);
+            if (typeof this.flush === 'function') flushState.chain = flushState.chain.then(() => this.flush()).catch(() => {});
+            return result;
+          },
+        );
       }
 
       fakeAI = new FakeApplicationInsights(connectionString);
@@ -115,6 +123,7 @@ let cacheBust = 0;
     describe('expectEventData', () => {
       it('log with track event catches event record', async () => {
         const transport = compose({
+          /** @param {import('../../types/interfaces.js').LogTelemetry} chunk */
           track(chunk) {
             const { time, properties } = chunk;
             this.trackEvent({ name: 'my event', time, properties, measurements: { logins: 1 } });
@@ -141,6 +150,7 @@ let cacheBust = 0;
 
       it('log with track event catches first event record', async () => {
         const transport = compose({
+          /** @param {import('../../types/interfaces.js').LogTelemetry} chunk */
           track(chunk) {
             const { time, properties } = chunk;
             this.trackEvent({ name: 'my event', time, properties, measurements: { logins: 1 } });

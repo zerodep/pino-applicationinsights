@@ -5,6 +5,7 @@ describe('applyClientConfig', () => {
     function v2Client() {
       const statsbeat = {
         enabled: true,
+        /** @param {boolean} state */
         enable(state) {
           this.enabled = state;
         },

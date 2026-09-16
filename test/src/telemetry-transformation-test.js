@@ -13,6 +13,7 @@ describe('TelemetryTransformation', () => {
 
   it('transform string to object and writes to destination', () => {
     ck.freeze();
+    /** @type {any[]} */
     const msgs = [];
     const destination = new Writable({
       autoDestroy: true,
@@ -44,6 +45,7 @@ describe('TelemetryTransformation', () => {
 
   it('forwards tagOverrides to destination', () => {
     ck.freeze();
+    /** @type {any[]} */
     const msgs = [];
     const destination = new Writable({
       autoDestroy: true,

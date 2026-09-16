@@ -73,14 +73,21 @@ function tick() {
     it('disables statsbeat via getStatsbeat() on v2; no-op on v3', async () => {
       const trackSpy = mock.method(TelemetryClient.prototype, 'trackTrace', () => {});
 
+      /** @type {any[]} */
+
       const statsbeats = [];
       if (typeof TelemetryClient.prototype.getStatsbeat === 'function') {
         const original = TelemetryClient.prototype.getStatsbeat;
-        mock.method(TelemetryClient.prototype, 'getStatsbeat', function getStatsbeat() {
-          const sb = original.call(this);
-          statsbeats.push(sb);
-          return sb;
-        });
+        mock.method(
+          TelemetryClient.prototype,
+          'getStatsbeat',
+          /** @this {import('applicationinsights').TelemetryClient} */
+          function getStatsbeat() {
+            const sb = original.call(this);
+            statsbeats.push(sb);
+            return sb;
+          },
+        );
       }
 
       const transport = compose({

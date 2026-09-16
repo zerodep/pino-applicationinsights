@@ -14,6 +14,7 @@ let cacheBust = 0;
 describe('compose', () => {
   describe('options', () => {
     it('compose with destination stream pipes to destination', () => {
+      /** @type {any[]} */
       const msgs = [];
 
       const destination = new Writable({
@@ -37,6 +38,7 @@ describe('compose', () => {
     });
 
     it('ignore keys filters telemetry properties', () => {
+      /** @type {any[]} */
       const msgs = [];
 
       const transport = compose({
@@ -62,24 +64,28 @@ describe('compose', () => {
 
     it('without connection string throws', () => {
       expect(() => {
+        // @ts-expect-error
         compose({ track() {} });
       }).to.throw(TypeError, /connectionString/);
     });
 
     it('with track function but without connection string throws', () => {
       expect(() => {
+        // @ts-expect-error
         compose({ track() {} });
       }).to.throw(TypeError, /connectionString/);
     });
 
     it('with connection string and non-function track throws', () => {
       expect(() => {
+        // @ts-expect-error
         compose({ track: {} });
       }).to.throw(TypeError, /connectionString/);
     });
 
     it('with destination not a Writable stream throws', () => {
       expect(() => {
+        // @ts-expect-error
         compose({ destination: {} });
       }).to.throw(TypeError, /writable/);
     });
@@ -91,6 +97,7 @@ describe('compose', () => {
     /** @type {(opts: any) => any} */
     let scopedCompose;
     let TelemetryClient;
+    /** @type {boolean} */
     let isV2;
 
     before(async () => {
@@ -103,11 +110,19 @@ describe('compose', () => {
       for (const method of ['trackTrace', 'trackException', 'trackEvent', 'trackMetric']) {
         const original = TelemetryClient.prototype[method];
         if (typeof original !== 'function') continue;
-        mock.method(TelemetryClient.prototype, method, function autoFlush(...args) {
-          const result = original.apply(this, args);
-          if (typeof this.flush === 'function') flushState.chain = flushState.chain.then(() => this.flush()).catch(() => {});
-          return result;
-        });
+        mock.method(
+          TelemetryClient.prototype,
+          method,
+          /**
+           * @this {import('applicationinsights').TelemetryClient}
+           * @param {unknown[]} args
+           */
+          function autoFlush(...args) {
+            const result = original.apply(this, args);
+            if (typeof this.flush === 'function') flushState.chain = flushState.chain.then(() => this.flush()).catch(() => {});
+            return result;
+          },
+        );
       }
 
       const probe = new TelemetryClient(`InstrumentationKey=${randomUUID()};IngestionEndpoint=https://probe.local`);
@@ -120,6 +135,8 @@ describe('compose', () => {
     describe('setup with connection string', () => {
       const connectionString = `InstrumentationKey=${randomUUID()};IngestionEndpoint=https://ingestion.local;LiveEndpoint=https://livemonitor.local/`;
 
+      /** @type {FakeApplicationInsights} */
+
       let fakeAI;
       before(() => {
         fakeAI = new FakeApplicationInsights(connectionString);
@@ -130,6 +147,7 @@ describe('compose', () => {
 
       it('logs message to target', async () => {
         const transport = scopedCompose({
+          /** @param {import('../../types/interfaces.js').LogTelemetry} chunk */
           track(chunk) {
             const { time, severity, msg: message, properties } = chunk;
             this.trackTrace({ time, severity, message, properties });
@@ -150,8 +168,10 @@ describe('compose', () => {
       });
 
       it('no TelemetryClient config is ok', async () => {
+        /** @type {import('applicationinsights').TelemetryClient | undefined} */
         let client;
         const transport = scopedCompose({
+          /** @param {import('../../types/interfaces.js').LogTelemetry} chunk */
           track(chunk) {
             client = this;
             const { time, severity, msg: message, properties } = chunk;
@@ -164,9 +184,9 @@ describe('compose', () => {
         const expectMessage = fakeAI.expectMessageData();
         logger.info({ bar: 'baz' }, 'foo');
 
-        expect(client.config).to.be.ok;
+        expect(client?.config).to.be.ok;
         if (isV2) {
-          expect(client.config).to.have.property('maxBatchSize').to.be.above(1);
+          expect(client?.config).to.have.property('maxBatchSize').to.be.above(1);
         }
 
         await expectMessage;
@@ -176,6 +196,7 @@ describe('compose', () => {
       it('config.disableStatsbeat=true does not throw on either version', async () => {
         const expectMessage = fakeAI.expectMessageData();
         const transport = scopedCompose({
+          /** @param {import('../../types/interfaces.js').LogTelemetry} chunk */
           track(chunk) {
             const { time, severity, msg: message, properties } = chunk;
             this.trackTrace({ time, severity, message, properties });
@@ -194,6 +215,7 @@ describe('compose', () => {
         const expectThree = fakeAI.expect(3);
 
         const transport = scopedCompose({
+          /** @param {import('../../types/interfaces.js').LogTelemetry} chunk */
           track(chunk) {
             const { time, severity, msg: message, properties } = chunk;
             this.trackTrace({ time, severity, message, properties });
@@ -217,6 +239,7 @@ describe('compose', () => {
     if (version === 'applicationinsights') {
       describe('setup with instrumentation key', () => {
         const instrumentationKey = randomUUID();
+        /** @type {FakeApplicationInsights} */
         let fakeAI;
         before(() => {
           fakeAI = new FakeApplicationInsights(instrumentationKey);
@@ -227,6 +250,7 @@ describe('compose', () => {
 
         it('logs message to target', async () => {
           const transport = scopedCompose({
+            /** @param {import('../../types/interfaces.js').LogTelemetry} chunk */
             track(chunk) {
               const { time, severity, msg: message, properties } = chunk;
               this.trackTrace({ time, severity, message, properties });
@@ -254,6 +278,8 @@ describe('compose', () => {
     describe('track function', () => {
       const connectionString = `InstrumentationKey=${randomUUID()};IngestionEndpoint=https://ingestion.local;LiveEndpoint=https://livemonitor.local/`;
 
+      /** @type {FakeApplicationInsights} */
+
       let fakeAI;
       before(() => {
         fakeAI = new FakeApplicationInsights(connectionString);
@@ -266,6 +292,7 @@ describe('compose', () => {
         const expectMessage = fakeAI.expectMessageData();
 
         const transport = scopedCompose({
+          /** @param {import('../../types/interfaces.js').LogTelemetry} chunk */
           track(chunk) {
             const { time, severity, msg: message, properties } = chunk;
             this.trackTrace({

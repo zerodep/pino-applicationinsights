@@ -15,7 +15,7 @@ declare module '@0dep/pino-applicationinsights' {
 		config?: Record<string, any>;
 		getStatsbeat?: () => {
 			enable(state: boolean): void;
-		};
+		} | null;
 		initialize?: () => void;
 	}, config: Record<string, any> | undefined): void;
 	/**

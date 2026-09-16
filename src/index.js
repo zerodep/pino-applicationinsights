@@ -171,7 +171,7 @@ export default function compose(opts, Transformation = TelemetryTransformation) 
 
 /**
  * Apply optional `config` to a `TelemetryClient`.
- * @param {{ config?: Record<string, any>, getStatsbeat?: () => { enable(state: boolean): void }, initialize?: () => void }} client
+ * @param {{ config?: Record<string, any>, getStatsbeat?: () => { enable(state: boolean): void } | null, initialize?: () => void }} client
  * @param {Record<string, any> | undefined} config
  */
 export function applyClientConfig(client, config) {

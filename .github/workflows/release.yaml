@@ -19,10 +19,11 @@ jobs:
         with:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
 
       - name: Update npm
         run: npm install -g npm@latest
-      - run: npm i
+      - run: npm i --loglevel=error
       - run: npm publish $VERSION_TAG
         env:
           VERSION_TAG: ${{ endsWith(github.ref_name, '-rc') && '--tag rc' || '' }}

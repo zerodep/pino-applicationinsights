@@ -5,7 +5,7 @@
     "connectionstring": "FROM_ENV",
     "config": {
       "maxBatchSize": 1,
-      "disableStatsBeat": true,
+      "disableStatsbeat": true,
       "useGlobalProviders": false
     }
   }

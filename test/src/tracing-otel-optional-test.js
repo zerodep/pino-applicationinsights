@@ -22,16 +22,19 @@ describe('applyTracing', () => {
 
 describe('trackTraceAndException', () => {
   it('skips auto-correlation when the client lacks context.keys', () => {
+    /** @type {any[]} */
     const calls = [];
     const fakeClient = {
+      /** @param {any} telemetry */
       trackTrace(telemetry) {
         calls.push(['trace', telemetry]);
       },
+      /** @param {any} telemetry */
       trackException(telemetry) {
         calls.push(['exception', telemetry]);
       },
     };
-    trackTraceAndException.call(fakeClient, {
+    trackTraceAndException.call(/** @type {any} */ (fakeClient), {
       time: new Date(0),
       severity: 1,
       msg: 'foo',

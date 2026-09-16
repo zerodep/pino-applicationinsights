@@ -10,6 +10,7 @@ import { mockApplicationinsights } from '../helpers/mock-module.js';
 const composeUrl = import.meta.resolve('@0dep/pino-applicationinsights');
 const filePath = fileURLToPath(import.meta.url);
 
+/** @type {Record<string, Record<string, number | string>>} */
 const wireSeverity = {
   applicationinsights: { Verbose: 0, Information: 1, Warning: 2, Error: 3, Critical: 4 },
   'applicationinsights-v3': { Verbose: 'Verbose', Information: 'Information', Warning: 'Warning', Error: 'Error', Critical: 'Critical' },
@@ -22,9 +23,13 @@ let cacheBust = 0;
     const connectionString = `InstrumentationKey=${randomUUID()};IngestionEndpoint=https://ingestion.local;LiveEndpoint=https://livemonitor.local/`;
 
     const SeverityLevel = wireSeverity[version];
+    /** @type {import('pino').Logger} */
     let logger;
+    /** @type {ReturnType<typeof import('@0dep/pino-applicationinsights').default>} */
     let transport;
+    /** @type {FakeApplicationInsights} */
     let fakeAI;
+    /** @type {Record<string, string>} */
     let tagKeys;
     let TelemetryClient;
 
@@ -42,11 +47,19 @@ let cacheBust = 0;
       for (const method of ['trackTrace', 'trackException', 'trackEvent', 'trackMetric']) {
         const original = TelemetryClient.prototype[method];
         if (typeof original !== 'function') continue;
-        mock.method(TelemetryClient.prototype, method, function autoFlush(...args) {
-          const result = original.apply(this, args);
-          if (typeof this.flush === 'function') flushState.chain = flushState.chain.then(() => this.flush()).catch(() => {});
-          return result;
-        });
+        mock.method(
+          TelemetryClient.prototype,
+          method,
+          /**
+           * @this {import('applicationinsights').TelemetryClient}
+           * @param {unknown[]} args
+           */
+          function autoFlush(...args) {
+            const result = original.apply(this, args);
+            if (typeof this.flush === 'function') flushState.chain = flushState.chain.then(() => this.flush()).catch(() => {});
+            return result;
+          },
+        );
       }
 
       const probe = new TelemetryClient(connectionString);
@@ -69,6 +82,7 @@ let cacheBust = 0;
       ck.reset();
     });
 
+    /** @param {any} context */
     function mixin(context) {
       return { tagOverrides: { [tagKeys.userId]: 'uzer', ...context.tagOverrides } };
     }
@@ -225,8 +239,7 @@ let cacheBust = 0;
         const expectMessage = fakeAI.expectMessageData();
         const expectException = fakeAI.expectExceptionData();
 
-        const error = new TypeError('bar');
-        error.code = 'ERR_TEST';
+        const error = Object.assign(new TypeError('bar'), { code: 'ERR_TEST' });
 
         logger.error(error, 'foo');
 

@@ -13,6 +13,10 @@ const composeUrl = import.meta.resolve('@0dep/pino-applicationinsights');
 const fakeAIUrl = import.meta.resolve('@0dep/pino-applicationinsights/fake-applicationinsights');
 const connectionString = config.applicationinsights.connectionstring;
 
+/**
+ * @param {string} user
+ * @param {string} pass
+ */
 const basicAuthHeader = (user, pass) => 'Basic ' + Buffer.from(`${user}:${pass}`).toString('base64');
 
 let cacheBust = 0;
@@ -89,7 +93,7 @@ let cacheBust = 0;
     let fakeAI;
     /** @type {Record<string, string>} */
     let tagKeys;
-    /** @type {{ destroy(): void }} */
+    /** @type {ReturnType<typeof import('@0dep/pino-applicationinsights').default>} */
     let inProcessTransport;
     /** @type {Array<ReturnType<typeof mock.module>>} */
     const moduleMocks = [];
@@ -103,11 +107,19 @@ let cacheBust = 0;
       for (const method of ['trackTrace', 'trackException', 'trackEvent', 'trackMetric']) {
         const original = TelemetryClient.prototype[method];
         if (typeof original !== 'function') continue;
-        mock.method(TelemetryClient.prototype, method, function autoFlush(...args) {
-          const result = original.apply(this, args);
-          if (typeof this.flush === 'function') flushState.chain = flushState.chain.then(() => this.flush()).catch(() => {});
-          return result;
-        });
+        mock.method(
+          TelemetryClient.prototype,
+          method,
+          /**
+           * @this {import('applicationinsights').TelemetryClient}
+           * @param {unknown[]} args
+           */
+          function autoFlush(...args) {
+            const result = original.apply(this, args);
+            if (typeof this.flush === 'function') flushState.chain = flushState.chain.then(() => this.flush()).catch(() => {});
+            return result;
+          },
+        );
       }
 
       const bust = `?ex-fai-v=${version}-${++cacheBust}`;
@@ -122,6 +134,7 @@ let cacheBust = 0;
       const inProcessLogger = pino(
         {
           level: 'trace',
+          /** @param {any} ctx */
           mixin(ctx) {
             const rc = getContext();
             if (!rc) return {};

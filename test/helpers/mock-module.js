@@ -24,13 +24,14 @@ export function mockModule(specifier, { namedExports = {}, defaultExport } = {})
   delete named.default;
   delete named.__esModule;
 
+  /** @type {import('node:test').MockModuleOptions & { exports?: Record<string, unknown> }} */
+  const options = { cache: false };
   if (supportsExportsOption) {
-    const exports = defaultExport === undefined ? named : { ...named, default: defaultExport };
-    return mock.module(specifier, { cache: false, exports });
+    options.exports = defaultExport === undefined ? named : { ...named, default: defaultExport };
+  } else {
+    options.namedExports = named;
+    if (defaultExport !== undefined) options.defaultExport = defaultExport;
   }
-
-  const options = { cache: false, namedExports: named };
-  if (defaultExport !== undefined) options.defaultExport = defaultExport;
   return mock.module(specifier, options);
 }
 

@@ -1,8 +1,12 @@
 {
   "extends": "../tsconfig.json",
-  "include": ["typescript/**/*"],
+  "include": ["**/*", "../src/**/*", "../example/**/*"],
   "compilerOptions": {
-    "rootDir": ".",
-    "types": ["node", "mocha"]
+    "rootDir": "..",
+    "checkJs": true,
+    "emitDeclarationOnly": false,
+    "declaration": false,
+    "noEmit": true,
+    "types": ["node", "chai", "mocha"]
   }
 }

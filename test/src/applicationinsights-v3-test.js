@@ -35,7 +35,7 @@ describe('applicationinsights v3 (live shim)', () => {
 
       v3Client.trackTrace({
         time: telemetry.time,
-        severity: telemetry.severity,
+        severity: /** @type {any} */ (telemetry.severity),
         message: telemetry.msg,
         properties: telemetry.properties,
       });

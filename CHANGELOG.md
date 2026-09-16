@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## v2.1.0 - 2026-09-16
+
+- `applyClientConfig` client type accepts a `getStatsbeat()` that returns `null`, as it does on applicationinsights v3
+- remove build for node v20, should still work but mocha is complaining
+- generate table of contents with [@0dep/piso](https://www.npmjs.com/package/@0dep/toc)
+
 ## v2.0.3 - 2026-07-24
 
 - remove files, agent wanted one file per function for some reason

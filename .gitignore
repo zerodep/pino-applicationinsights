@@ -21,7 +21,7 @@ coverage*
 /public/
 
 # Revision file
-config/_revision
+example/config/_revision
 
 # OS X
 .DS_Store
