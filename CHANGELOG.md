@@ -8,7 +8,7 @@ All notable changes to this project will be documented in this file.
 
 - `applyClientConfig` client type accepts a `getStatsbeat()` that returns `null`, as it does on applicationinsights v3
 - remove build for node v20, should still work but mocha is complaining
-- generate table of contents with [@0dep/piso](https://www.npmjs.com/package/@0dep/toc)
+- generate table of contents with [@0dep/toc](https://www.npmjs.com/package/@0dep/toc)
 
 ## v2.0.3 - 2026-07-24
 
